@@ -1,0 +1,52 @@
+name: Deploy Self-Custodial
+
+on:
+  push:
+    tags: ["self-v*"]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Generate production config
+        env:
+          API_BASE_URL: ${{ secrets.API_BASE_URL }}
+          CHANNEL_CONTRACT_ID: ${{ secrets.CHANNEL_CONTRACT_ID }}
+          CHANNEL_AUTH_ID: ${{ secrets.CHANNEL_AUTH_ID }}
+          POSTHOG_KEY: ${{ secrets.POSTHOG_PROJECT_TOKEN }}
+        run: |
+          deno eval "
+            const config = {
+              environment: 'production',
+              stellarNetwork: 'testnet',
+              rpcUrl: 'https://soroban-testnet.stellar.org',
+              apiBaseUrl: Deno.env.get('API_BASE_URL'),
+              channelContractId: Deno.env.get('CHANNEL_CONTRACT_ID'),
+              channelAuthId: Deno.env.get('CHANNEL_AUTH_ID'),
+              posthogKey: Deno.env.get('POSTHOG_KEY'),
+              posthogHost: 'https://us.i.posthog.com',
+            };
+            Deno.writeTextFileSync('apps/self/public/config.js',
+              'window.__PAY_CONFIG__ = ' + JSON.stringify(config, null, 2) + ';\n');
+          "
+
+      - name: Build production bundle
+        working-directory: apps/self
+        run: deno task build -- --production
+
+      - name: Deploy to Tigris
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.TIGRIS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.TIGRIS_SECRET_ACCESS_KEY }}
+          AWS_REGION: auto
+        run: |
+          aws s3 sync apps/self/public/ s3://moonlight-pay-self/ \
+            --endpoint-url https://fly.storage.tigris.dev \
+            --acl public-read \
+            --delete \
+            --no-progress

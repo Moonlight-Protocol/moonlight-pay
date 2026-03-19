@@ -1,0 +1,7 @@
+node_modules/
+apps/self/public/app.js
+apps/self/public/app.js.map
+apps/custodial/public/app.js
+apps/custodial/public/app.js.map
+.env
+.DS_Store

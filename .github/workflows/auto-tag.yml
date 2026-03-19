@@ -1,0 +1,61 @@
+name: Auto Tag
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/self/deno.json"
+      - "apps/custodial/deno.json"
+
+jobs:
+  tag-self:
+    if: contains(github.event.head_commit.modified, 'apps/self/deno.json') || contains(github.event.head_commit.added, 'apps/self/deno.json')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.AUTO_VERSION_TOKEN }}
+          persist-credentials: true
+
+      - name: Read version
+        id: version
+        run: |
+          VERSION=$(grep -m1 '"version"' apps/self/deno.json | sed 's/.*"\([0-9]*\.[0-9]*\.[0-9]*\)".*/\1/')
+          echo "tag=self-v$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Create tag if new
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          if ! git rev-parse "refs/tags/$TAG" >/dev/null 2>&1; then
+            git tag "$TAG"
+            git push origin "$TAG"
+          fi
+
+  tag-custodial:
+    if: contains(github.event.head_commit.modified, 'apps/custodial/deno.json') || contains(github.event.head_commit.added, 'apps/custodial/deno.json')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.AUTO_VERSION_TOKEN }}
+          persist-credentials: true
+
+      - name: Read version
+        id: version
+        run: |
+          VERSION=$(grep -m1 '"version"' apps/custodial/deno.json | sed 's/.*"\([0-9]*\.[0-9]*\.[0-9]*\)".*/\1/')
+          echo "tag=custodial-v$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Create tag if new
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          if ! git rev-parse "refs/tags/$TAG" >/dev/null 2>&1; then
+            git tag "$TAG"
+            git push origin "$TAG"
+          fi
