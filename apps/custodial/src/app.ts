@@ -1,7 +1,7 @@
 import { route, startRouter, navigate } from "./lib/router.ts";
-import { isAuthenticated } from "./lib/auth.ts";
+import { isAuthenticated, getToken } from "./lib/auth.ts";
 import { initAnalytics } from "shared/analytics/index.ts";
-import { configure } from "shared/api/client.ts";
+import { configure, setAuthToken } from "shared/api/client.ts";
 import { IS_PRODUCTION, POSTHOG_KEY, POSTHOG_HOST, API_BASE_URL } from "./lib/config.ts";
 
 import { loginView } from "./views/login.ts";
@@ -12,6 +12,10 @@ import { demoView } from "./views/demo.ts";
 import { reportView } from "./views/report.ts";
 
 configure({ baseUrl: API_BASE_URL });
+
+// Restore auth token from previous session
+const storedToken = getToken();
+if (storedToken) setAuthToken(storedToken);
 initAnalytics({
   isProduction: IS_PRODUCTION,
   posthogKey: POSTHOG_KEY,

@@ -28,6 +28,10 @@ export function initAnalytics(config: {
 
   const script = document.createElement("script");
   script.src = "https://us-assets.i.posthog.com/static/array.js";
+  script.crossOrigin = "anonymous";
+  // TODO: Generate SRI integrity hash for PostHog array.js at build time.
+  // The CDN-hosted script changes on updates, so the hash must be regenerated
+  // whenever the PostHog JS version is bumped.
   script.onload = () => {
     // deno-lint-ignore no-explicit-any
     const posthog = (window as any).posthog;
@@ -35,7 +39,7 @@ export function initAnalytics(config: {
       posthog.init(config.posthogKey, {
         api_host: config.posthogHost,
         person_profiles: "identified_only",
-        autocapture: true,
+        autocapture: false,
         capture_pageview: true,
         capture_pageleave: true,
         // Error tracking

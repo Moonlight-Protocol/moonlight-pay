@@ -1,5 +1,5 @@
-import * as esbuild from "https://deno.land/x/esbuild@v0.20.1/mod.js";
-import { denoPlugins } from "jsr:@luca/esbuild-deno-loader@0.10";
+import * as esbuild from "https://deno.land/x/esbuild@v0.24.2/mod.js";
+import { denoPlugins } from "jsr:@luca/esbuild-deno-loader@0.11";
 
 const isProduction = Deno.args.includes("--production");
 const denoJson = JSON.parse(await Deno.readTextFile("deno.json"));
