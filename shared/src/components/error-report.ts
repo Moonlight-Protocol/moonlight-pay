@@ -3,7 +3,7 @@
  * Collects debug info and sends to the provider-platform.
  */
 
-export function renderErrorReport(container: HTMLElement): void {
+export function renderErrorReport(container: HTMLElement, opts?: { apiSubmit?: (body: unknown) => Promise<unknown> }): void {
   container.innerHTML = `
     <h2>Report an Issue</h2>
     <p style="color:var(--text-muted);margin-bottom:1rem">
@@ -33,9 +33,9 @@ export function renderErrorReport(container: HTMLElement): void {
   const debugEl = container.querySelector("#debug-info") as HTMLPreElement;
   const debugInfo = {
     userAgent: navigator.userAgent,
-    url: window.location.href,
+    url: globalThis.location?.href,
     timestamp: new Date().toISOString(),
-    viewport: `${window.innerWidth}x${window.innerHeight}`,
+    viewport: `${globalThis.innerWidth}x${globalThis.innerHeight}`,
     localStorage: Object.keys(localStorage).filter((k) => !k.includes("secret") && !k.includes("token")),
   };
   debugEl.textContent = JSON.stringify(debugInfo, null, 2);
@@ -44,7 +44,7 @@ export function renderErrorReport(container: HTMLElement): void {
   const statusEl = container.querySelector("#report-status") as HTMLParagraphElement;
   const errorEl = container.querySelector("#report-error") as HTMLParagraphElement;
 
-  submitBtn.addEventListener("click", () => {
+  submitBtn.addEventListener("click", async () => {
     const description = (container.querySelector("#error-description") as HTMLTextAreaElement).value.trim();
     if (!description) {
       errorEl.textContent = "Please describe the issue.";
@@ -53,13 +53,24 @@ export function renderErrorReport(container: HTMLElement): void {
     }
 
     const steps = (container.querySelector("#error-steps") as HTMLTextAreaElement).value.trim();
+    const report = { description, steps, debug: debugInfo };
 
-    // For now, log to console. Backend endpoint will be added later.
-    console.info("[error-report]", { description, steps, debug: debugInfo });
-
-    errorEl.hidden = true;
-    statusEl.textContent = "Report submitted. Thank you!";
-    statusEl.hidden = false;
     submitBtn.disabled = true;
+    errorEl.hidden = true;
+
+    try {
+      if (opts?.apiSubmit) {
+        await opts.apiSubmit(report);
+      } else {
+        console.info("[error-report]", report);
+      }
+
+      statusEl.textContent = "Report submitted. Thank you!";
+      statusEl.hidden = false;
+    } catch (err) {
+      errorEl.textContent = err instanceof Error ? err.message : "Failed to submit report";
+      errorEl.hidden = false;
+      submitBtn.disabled = false;
+    }
   });
 }

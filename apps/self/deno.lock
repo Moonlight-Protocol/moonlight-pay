@@ -1,27 +1,61 @@
 {
   "version": "5",
   "specifiers": {
+    "jsr:@colibri/core@~0.16.1": "0.16.1",
+    "jsr:@fifo/convee@~0.9.2": "0.9.2",
     "jsr:@luca/esbuild-deno-loader@0.10": "0.10.3",
+    "jsr:@luca/esbuild-deno-loader@0.11": "0.11.1",
     "jsr:@noble/curves@^1.8.0": "1.9.0",
     "jsr:@noble/hashes@1.8.0": "1.8.0",
     "jsr:@noble/hashes@^1.6.1": "1.8.0",
+    "jsr:@std/assert@*": "0.213.1",
     "jsr:@std/assert@~0.213.1": "0.213.1",
+    "jsr:@std/bytes@^1.0.2": "1.0.6",
+    "jsr:@std/collections@^1.1.3": "1.1.6",
     "jsr:@std/encoding@0.213": "0.213.1",
+    "jsr:@std/encoding@^1.0.5": "1.0.10",
+    "jsr:@std/fmt@~0.213.1": "0.213.1",
+    "jsr:@std/internal@^1.0.12": "1.0.12",
     "jsr:@std/jsonc@0.213": "0.213.1",
     "jsr:@std/path@*": "0.213.1",
     "jsr:@std/path@0.213": "0.213.1",
-    "npm:@creit.tech/stellar-wallets-kit@^1.4.0": "1.9.5_@stellar+stellar-base@14.1.0_rxjs@7.8.1_@ngneat+elf@2.5.1__rxjs@7.8.1_@stellar+stellar-sdk@14.2.0",
+    "jsr:@std/path@^1.0.6": "1.1.4",
+    "jsr:@std/toml@^1.0.11": "1.0.11",
+    "npm:@creit.tech/stellar-wallets-kit@^1.4.0": "1.9.5_@stellar+stellar-base@14.1.0_rxjs@7.8.1_@ngneat+elf@2.5.1__rxjs@7.8.1_@stellar+stellar-sdk@14.2.0_tslib@2.5.0",
     "npm:@stellar/stellar-base@14.1.0": "14.1.0",
     "npm:@stellar/stellar-sdk@14.2.0": "14.2.0",
-    "npm:buffer@^6.0.3": "6.0.3"
+    "npm:@stellar/stellar-sdk@^14.6.1": "14.6.1",
+    "npm:asn1js@3.0.5": "3.0.5",
+    "npm:buffer@^6.0.3": "6.0.3",
+    "npm:tslib@2.5.0": "2.5.0"
   },
   "jsr": {
+    "@colibri/core@0.16.1": {
+      "integrity": "ad7e77f4647a0742369ced557e38f8848fa0f11da342a7330cf276cef7db622b",
+      "dependencies": [
+        "jsr:@fifo/convee",
+        "jsr:@std/toml",
+        "npm:@stellar/stellar-sdk@^14.6.1",
+        "npm:buffer"
+      ]
+    },
+    "@fifo/convee@0.9.2": {
+      "integrity": "178066e406335a88f90558e89f9a01d7b57f9aa3e675cd2f6548534b8ff14286"
+    },
     "@luca/esbuild-deno-loader@0.10.3": {
       "integrity": "32fc93f7e7f78060234fd5929a740668aab1c742b808c6048b57f9aaea514921",
       "dependencies": [
-        "jsr:@std/encoding",
+        "jsr:@std/encoding@0.213",
         "jsr:@std/jsonc",
         "jsr:@std/path@0.213"
+      ]
+    },
+    "@luca/esbuild-deno-loader@0.11.1": {
+      "integrity": "dc020d16d75b591f679f6b9288b10f38bdb4f24345edb2f5732affa1d9885267",
+      "dependencies": [
+        "jsr:@std/bytes",
+        "jsr:@std/encoding@^1.0.5",
+        "jsr:@std/path@^1.0.6"
       ]
     },
     "@noble/curves@1.9.0": {
@@ -34,21 +68,51 @@
       "integrity": "b52a2fcb4d02f8d8137871564a31f1ee9e2b0d15eedabbf32d2f7333f0abc939"
     },
     "@std/assert@0.213.1": {
-      "integrity": "24c28178b30c8e0782c18e8e94ea72b16282207569cdd10ffb9d1d26f2edebfe"
+      "integrity": "24c28178b30c8e0782c18e8e94ea72b16282207569cdd10ffb9d1d26f2edebfe",
+      "dependencies": [
+        "jsr:@std/fmt"
+      ]
+    },
+    "@std/bytes@1.0.6": {
+      "integrity": "f6ac6adbd8ccd99314045f5703e23af0a68d7f7e58364b47d2c7f408aeb5820a"
+    },
+    "@std/collections@1.1.6": {
+      "integrity": "b458160ce65ea5ad35da05d0a5cbee4b583677c8b443a10d7beb0c4ac63f2baa"
     },
     "@std/encoding@0.213.1": {
       "integrity": "fcbb6928713dde941a18ca5db88ca1544d0755ec8fb20fe61e2dc8144b390c62"
     },
+    "@std/encoding@1.0.10": {
+      "integrity": "8783c6384a2d13abd5e9e87a7ae0520a30e9f56aeeaa3bdf910a3eaaf5c811a1"
+    },
+    "@std/fmt@0.213.1": {
+      "integrity": "a06d31777566d874b9c856c10244ac3e6b660bdec4c82506cd46be052a1082c3"
+    },
+    "@std/internal@1.0.12": {
+      "integrity": "972a634fd5bc34b242024402972cd5143eac68d8dffaca5eaa4dba30ce17b027"
+    },
     "@std/jsonc@0.213.1": {
       "integrity": "5578f21aa583b7eb7317eed077ffcde47b294f1056bdbb9aacec407758637bfe",
       "dependencies": [
-        "jsr:@std/assert"
+        "jsr:@std/assert@~0.213.1"
       ]
     },
     "@std/path@0.213.1": {
       "integrity": "f187bf278a172752e02fcbacf6bd78a335ed320d080a7ed3a5a59c3e88abc673",
       "dependencies": [
-        "jsr:@std/assert"
+        "jsr:@std/assert@~0.213.1"
+      ]
+    },
+    "@std/path@1.1.4": {
+      "integrity": "1d2d43f39efb1b42f0b1882a25486647cb851481862dc7313390b2bb044314b5",
+      "dependencies": [
+        "jsr:@std/internal"
+      ]
+    },
+    "@std/toml@1.0.11": {
+      "integrity": "e084988b872ca4bad6aedfb7350f6eeed0e8ba88e9ee5e1590621c5b5bb8f715",
+      "dependencies": [
+        "jsr:@std/collections"
       ]
     }
   },
@@ -59,7 +123,7 @@
     "@babel/runtime@7.29.2": {
       "integrity": "sha512-JiDShH45zKHWyGe4ZNVRrCjBz8Nh9TMmZG1kh4QTK8hCBTWBi8Da+i7s1fJw7/lYpM4ccepSNfqzZ/QvABBi5g=="
     },
-    "@creit.tech/stellar-wallets-kit@1.9.5_@stellar+stellar-base@14.1.0_rxjs@7.8.1_@ngneat+elf@2.5.1__rxjs@7.8.1_@stellar+stellar-sdk@14.2.0": {
+    "@creit.tech/stellar-wallets-kit@1.9.5_@stellar+stellar-base@14.1.0_rxjs@7.8.1_@ngneat+elf@2.5.1__rxjs@7.8.1_@stellar+stellar-sdk@14.2.0_tslib@2.5.0": {
       "integrity": "sha512-b9E77r+o6Opow0CttmHdFBPeJpdLhOcLFTx3CbnwMQVivo94niap70y3A03F5cYgwVk9HhM4CJr0aimm0eNwxA==",
       "dependencies": [
         "@albedo-link/intent",
@@ -1121,39 +1185,54 @@
       ],
       "scripts": true
     },
+    "@stellar/stellar-sdk@14.6.1": {
+      "integrity": "sha512-A1rQWDLdUasXkMXnYSuhgep+3ZZzyuXJKdt5/KAIc0gkmSp906HTvUpbT4pu+bVr41tu0+J4Ugz9J4BQAGGytg==",
+      "dependencies": [
+        "@stellar/stellar-base@14.1.0",
+        "axios",
+        "bignumber.js",
+        "commander@14.0.3",
+        "eventsource",
+        "feaxios",
+        "randombytes",
+        "toml",
+        "urijs"
+      ],
+      "bin": true
+    },
     "@swc/helpers@0.5.19": {
       "integrity": "sha512-QamiFeIK3txNjgUTNppE6MiG3p7TdninpZu0E0PbqVh1a9FNLT2FRhisaa4NcaX52XVhA5l7Pk58Ft7Sqi/2sA==",
       "dependencies": [
         "tslib@2.8.1"
       ]
     },
-    "@trezor/analytics@1.4.2_tslib@2.8.1": {
+    "@trezor/analytics@1.4.2_tslib@2.5.0": {
       "integrity": "sha512-FgjJekuDvx1TjiDemvpnPiRck7Kp/v1ZeppsBYpQR3yGKyKzbG1pVpcl0RyI2237raXxbORaz7XV8tcyjq4BXg==",
       "dependencies": [
-        "@trezor/env-utils@1.4.2_tslib@2.8.1",
-        "@trezor/utils@9.4.2_tslib@2.8.1",
-        "tslib@2.8.1"
+        "@trezor/env-utils",
+        "@trezor/utils@9.4.2_tslib@2.5.0",
+        "tslib@2.5.0"
       ]
     },
-    "@trezor/blockchain-link-types@1.4.2_tslib@2.8.1": {
+    "@trezor/blockchain-link-types@1.4.2_tslib@2.5.0": {
       "integrity": "sha512-KThBmGOFLJAFnmou9ThQhnjEVxfYPfEwMOaVTVNgJ+NAkt5rEMx0SKBBelCGZ63XtOLWdVPglFo83wtm+I9Vpg==",
       "dependencies": [
         "@trezor/utxo-lib",
-        "tslib@2.8.1"
+        "tslib@2.5.0"
       ]
     },
-    "@trezor/blockchain-link-utils@1.4.2_tslib@2.8.1": {
+    "@trezor/blockchain-link-utils@1.4.2_tslib@2.5.0": {
       "integrity": "sha512-PBEBrdtHn0dn/c9roW6vjdHI/CucMywJm5gthETZAZmzBOtg6ZDpLTn+qL8+jZGIbwcAkItrQ3iHrHhR6xTP5g==",
       "dependencies": [
         "@mobily/ts-belt",
         "@stellar/stellar-sdk@13.3.0",
-        "@trezor/env-utils@1.4.2_tslib@2.8.1",
-        "@trezor/utils@9.4.2_tslib@2.8.1",
-        "tslib@2.8.1",
+        "@trezor/env-utils",
+        "@trezor/utils@9.4.2_tslib@2.5.0",
+        "tslib@2.5.0",
         "xrpl"
       ]
     },
-    "@trezor/blockchain-link@2.5.2_tslib@2.8.1_@solana+kit@2.3.0__typescript@5.9.3": {
+    "@trezor/blockchain-link@2.5.2_tslib@2.5.0_@solana+kit@2.3.0__typescript@5.9.3": {
       "integrity": "sha512-/egUnIt/fR57QY33ejnkPMhZwRvVRS/pUCoqdVIGitN1Q7QZsdopoR4hw37hdK/Ux/q1ZLH6LZz7U2UFahjppw==",
       "dependencies": [
         "@solana-program/stake",
@@ -1164,52 +1243,52 @@
         "@stellar/stellar-sdk@13.3.0",
         "@trezor/blockchain-link-types",
         "@trezor/blockchain-link-utils",
-        "@trezor/env-utils@1.4.2_tslib@2.8.1",
-        "@trezor/utils@9.4.2_tslib@2.8.1",
+        "@trezor/env-utils",
+        "@trezor/utils@9.4.2_tslib@2.5.0",
         "@trezor/utxo-lib",
         "@trezor/websocket-client",
         "@types/web",
         "events",
         "socks-proxy-agent",
-        "tslib@2.8.1",
+        "tslib@2.5.0",
         "xrpl"
       ]
     },
-    "@trezor/connect-analytics@1.3.5_tslib@2.8.1": {
+    "@trezor/connect-analytics@1.3.5_tslib@2.5.0": {
       "integrity": "sha512-Aoi+EITpZZycnELQJEp9XV0mHFfaCQ6JE0Ka5mWuHtOny3nJdFLBrih4ipcEXJdJbww6pBxRJB09sJ19cTyacA==",
       "dependencies": [
         "@trezor/analytics",
-        "tslib@2.8.1"
+        "tslib@2.5.0"
       ]
     },
-    "@trezor/connect-common@0.4.2_tslib@2.8.1": {
+    "@trezor/connect-common@0.4.2_tslib@2.5.0": {
       "integrity": "sha512-ND5TTjrTPnJdfl8Wlhl9YtFWnY2u6FHM1dsPkNYCmyUKIMoflJ5cLn95Xabl6l1btHERYn3wTUvgEYQG7r8OVQ==",
       "dependencies": [
-        "@trezor/env-utils@1.4.2_tslib@2.8.1",
-        "@trezor/utils@9.4.2_tslib@2.8.1",
-        "tslib@2.8.1"
+        "@trezor/env-utils",
+        "@trezor/utils@9.4.2_tslib@2.5.0",
+        "tslib@2.5.0"
       ]
     },
-    "@trezor/connect-plugin-stellar@9.2.1_@stellar+stellar-sdk@14.2.0_@trezor+connect@9.6.2__tslib@2.8.1__@solana+kit@2.3.0___typescript@5.9.3_tslib@2.8.1": {
+    "@trezor/connect-plugin-stellar@9.2.1_@stellar+stellar-sdk@14.2.0_@trezor+connect@9.6.2__tslib@2.5.0__@solana+kit@2.3.0___typescript@5.9.3_tslib@2.5.0": {
       "integrity": "sha512-Orz5gFZzYFZs1+cTsgg8fz/VWFjhl7pqMCqD5DVNZpXW+wrjwBaRbcGJZ+ibkPKU3AlM7Uv3SVD/pjaQmAkZ2Q==",
       "dependencies": [
         "@stellar/stellar-sdk@14.2.0",
         "@trezor/connect",
-        "@trezor/utils@9.4.1_tslib@2.8.1",
-        "tslib@2.8.1"
+        "@trezor/utils@9.4.1_tslib@2.5.0",
+        "tslib@2.5.0"
       ]
     },
-    "@trezor/connect-web@9.6.2_tslib@2.8.1": {
+    "@trezor/connect-web@9.6.2_tslib@2.5.0": {
       "integrity": "sha512-QGuCjX8Bx9aCq1Pg52KifbbzYn00FQu9mCTDSgCVGH/HAzbxhcRkDKc86kFwW8z9NdJxw+XeVJq5Ky/js3iEDA==",
       "dependencies": [
         "@trezor/connect",
         "@trezor/connect-common",
-        "@trezor/utils@9.4.2_tslib@2.8.1",
+        "@trezor/utils@9.4.2_tslib@2.5.0",
         "@trezor/websocket-client",
-        "tslib@2.8.1"
+        "tslib@2.5.0"
       ]
     },
-    "@trezor/connect@9.6.2_tslib@2.8.1_@solana+kit@2.3.0__typescript@5.9.3": {
+    "@trezor/connect@9.6.2_tslib@2.5.0_@solana+kit@2.3.0__typescript@5.9.3": {
       "integrity": "sha512-XsSERBK+KnF6FPsATuhB9AEM0frekVLwAwFo35MRV9I4P+mdv6tnUiZUq8O8aoPbfJwDjtNJSYv+PMsKuRH6rg==",
       "dependencies": [
         "@ethereumjs/common",
@@ -1230,101 +1309,94 @@
         "@trezor/connect-common",
         "@trezor/crypto-utils",
         "@trezor/device-utils",
-        "@trezor/env-utils@1.5.0_tslib@2.8.1",
+        "@trezor/env-utils",
         "@trezor/protobuf",
         "@trezor/protocol",
         "@trezor/schema-utils",
         "@trezor/transport",
         "@trezor/type-utils",
-        "@trezor/utils@9.4.2_tslib@2.8.1",
+        "@trezor/utils@9.4.2_tslib@2.5.0",
         "@trezor/utxo-lib",
         "blakejs",
         "bs58@6.0.0",
         "bs58check@4.0.0",
         "cross-fetch",
         "jws",
-        "tslib@2.8.1"
+        "tslib@2.5.0"
       ]
     },
-    "@trezor/crypto-utils@1.1.4_tslib@2.8.1": {
+    "@trezor/crypto-utils@1.1.4_tslib@2.5.0": {
       "integrity": "sha512-Y6VziniqMPoMi70IyowEuXKqRvBYQzgPAekJaUZTHhR+grtYNRKRH2HJCvuZ8MGmSKUFSYfa7y8AvwALA8mQmA==",
       "dependencies": [
-        "tslib@2.8.1"
+        "tslib@2.5.0"
       ]
     },
     "@trezor/device-utils@1.1.2": {
       "integrity": "sha512-R3AJvAo+a3wYVmcGZO2VNl9PZOmDEzCZIlmCJn0BlSRWWd8G9u1qyo/fL9zOwij/YhCaJyokmSHmIEmbY9qpgw=="
     },
-    "@trezor/env-utils@1.4.2_tslib@2.8.1": {
+    "@trezor/env-utils@1.4.2_tslib@2.5.0": {
       "integrity": "sha512-lQvrqcNK5I4dy2MuiLyMuEm0KzY59RIu2GLtc9GsvqyxSPZkADqVzGeLJjXj/vI2ajL8leSpMvmN4zPw3EK8AA==",
       "dependencies": [
-        "tslib@2.8.1",
+        "tslib@2.5.0",
         "ua-parser-js"
       ]
     },
-    "@trezor/env-utils@1.5.0_tslib@2.8.1": {
-      "integrity": "sha512-u1TN7dMQ5Qhpbae08Z4JJmI9fQrbbJ4yj8eIAsuzMQn6vb+Sg9vbntl+IDsZ1G9WeI73uHTLu1wWMmAgiujH8w==",
-      "dependencies": [
-        "tslib@2.8.1",
-        "ua-parser-js"
-      ]
-    },
-    "@trezor/protobuf@1.4.2_tslib@2.8.1": {
+    "@trezor/protobuf@1.4.2_tslib@2.5.0": {
       "integrity": "sha512-AeIYKCgKcE9cWflggGL8T9gD+IZLSGrwkzqCk3wpIiODd5dUCgEgA4OPBufR6OMu3RWu/Tgu2xviHunijG3LXQ==",
       "dependencies": [
         "@trezor/schema-utils",
         "long",
         "protobufjs",
-        "tslib@2.8.1"
+        "tslib@2.5.0"
       ]
     },
-    "@trezor/protocol@1.2.8_tslib@2.8.1": {
+    "@trezor/protocol@1.2.8_tslib@2.5.0": {
       "integrity": "sha512-8EH+EU4Z1j9X4Ljczjbl9G7vVgcUz41qXcdE+6FOG3BFvMDK4KUVvaOtWqD+1dFpeo5yvWSTEKdhgXMPFprWYQ==",
       "dependencies": [
-        "tslib@2.8.1"
+        "tslib@2.5.0"
       ]
     },
-    "@trezor/schema-utils@1.3.4_tslib@2.8.1": {
+    "@trezor/schema-utils@1.3.4_tslib@2.5.0": {
       "integrity": "sha512-guP5TKjQEWe6c5HGx+7rhM0SAdEL5gylpkvk9XmJXjZDnl1Ew81nmLHUs2ghf8Od3pKBe4qjBIMBHUQNaOqWUg==",
       "dependencies": [
         "@sinclair/typebox",
         "ts-mixer",
-        "tslib@2.8.1"
+        "tslib@2.5.0"
       ]
     },
-    "@trezor/transport@1.5.2_tslib@2.8.1": {
+    "@trezor/transport@1.5.2_tslib@2.5.0": {
       "integrity": "sha512-rYP87zdVll2bNBtsD3VxJq0yjaNvIClcgszZjQwVTQxpKGFPkx8bLSpAGI05R9qfxusZJCfYarjX3qki9nHYPw==",
       "dependencies": [
         "@trezor/protobuf",
         "@trezor/protocol",
         "@trezor/type-utils",
-        "@trezor/utils@9.4.2_tslib@2.8.1",
+        "@trezor/utils@9.4.2_tslib@2.5.0",
         "cross-fetch",
-        "tslib@2.8.1",
+        "tslib@2.5.0",
         "usb"
       ]
     },
     "@trezor/type-utils@1.1.8": {
       "integrity": "sha512-VtvkPXpwtMtTX9caZWYlMMTmhjUeDq4/1LGn0pSdjd4OuL/vQyuPWXCT/0RtlnRraW6R2dZF7rX2UON2kQIMTQ=="
     },
-    "@trezor/utils@9.4.1_tslib@2.8.1": {
+    "@trezor/utils@9.4.1_tslib@2.5.0": {
       "integrity": "sha512-9MYNa99tzXiTBnKadABoY2D80YL9Mh3ntM5wziwVhjZ4HyhqFH6BsCxwFpWYLUIKBctD55QEdE4bASoqp7Ad1A==",
       "dependencies": [
         "bignumber.js",
-        "tslib@2.8.1"
+        "tslib@2.5.0"
       ]
     },
-    "@trezor/utils@9.4.2_tslib@2.8.1": {
+    "@trezor/utils@9.4.2_tslib@2.5.0": {
       "integrity": "sha512-Fm3m2gmfXsgv4chqn5HX8e8dElEr2ibBJSJ7HE3bsHh/1OSQcDdzsSioAK04Fo9ws/v7n6lt+QBZ6fGmwyIkZQ==",
       "dependencies": [
         "bignumber.js",
-        "tslib@2.8.1"
+        "tslib@2.5.0"
       ]
     },
-    "@trezor/utxo-lib@2.4.2_tslib@2.8.1": {
+    "@trezor/utxo-lib@2.4.2_tslib@2.5.0": {
       "integrity": "sha512-dTXfBg/cEKnmHM5CLG5+0qrp6fqOfwxqe8YPACdKeM7g1XJKCGDAuFpDUVeT3lrcUsTh6bEMHM06z4H3gZp5MQ==",
       "dependencies": [
-        "@trezor/utils@9.4.2_tslib@2.8.1",
+        "@trezor/utils@9.4.2_tslib@2.5.0",
         "bchaddrjs",
         "bech32",
         "bip66",
@@ -1338,17 +1410,17 @@
         "int64-buffer",
         "pushdata-bitcoin",
         "tiny-secp256k1",
-        "tslib@2.8.1",
+        "tslib@2.5.0",
         "typeforce",
         "varuint-bitcoin",
         "wif"
       ]
     },
-    "@trezor/websocket-client@1.2.2_tslib@2.8.1": {
+    "@trezor/websocket-client@1.2.2_tslib@2.5.0": {
       "integrity": "sha512-vu9L1V/5yh8LHQCmsGC9scCnihELsVuR5Tri1IvW3CdgTUFFcfjsEgXsFqFME3HlxuUmx6qokw0Gx/o0/hzaSQ==",
       "dependencies": [
-        "@trezor/utils@9.4.2_tslib@2.8.1",
-        "tslib@2.8.1",
+        "@trezor/utils@9.4.2_tslib@2.5.0",
+        "tslib@2.5.0",
         "ws@8.19.0_bufferutil@4.1.0_utf-8-validate@6.0.6"
       ]
     },
@@ -1640,6 +1712,14 @@
       "dependencies": [
         "normalize-path",
         "picomatch"
+      ]
+    },
+    "asn1js@3.0.5": {
+      "integrity": "sha512-FVnvrKJwpt9LP2lAMl8qZswRNm3T4q9CON+bxldk2iwk3FFpuwhx2FfinyitizWHsVYyaY+y5JzDR0rCMV5yTQ==",
+      "dependencies": [
+        "pvtsutils",
+        "pvutils",
+        "tslib@2.8.1"
       ]
     },
     "asynckit@0.4.0": {
@@ -2653,6 +2733,15 @@
         "bitcoin-ops"
       ]
     },
+    "pvtsutils@1.3.6": {
+      "integrity": "sha512-PLgQXQ6H2FWCaeRak8vvk1GW462lMxB5s3Jm673N82zI4vqtVUPuZdffdZbPDFRoU8kAhItWFtPCWiPpp4/EDg==",
+      "dependencies": [
+        "tslib@2.8.1"
+      ]
+    },
+    "pvutils@1.1.5": {
+      "integrity": "sha512-KTqnxsgGiQ6ZAzZCVlJH5eOjSnvlyEgx1m8bkRJfOhmGRqfo5KLvmAlACQkrjEtOQ4B7wF9TdSLIs9O90MX9xA=="
+    },
     "qrcode@1.5.3": {
       "integrity": "sha512-puyri6ApkEHYiVl4CFzo1tDkAZ+ATcnbJrJ6RiBM1Fhctdn/ix9MTE3hRph33omisEbC/2fcfemsseiKgBPKZg==",
       "dependencies": [
@@ -2972,6 +3061,9 @@
     "tslib@1.14.1": {
       "integrity": "sha512-Xni35NKzjgMrwevysHTCArtLDpPvye8zV/0E4EyYn43P7/7qvQwPh9BGkHewbMulVntbigmcT7rdX3BNo9wRJg=="
     },
+    "tslib@2.5.0": {
+      "integrity": "sha512-336iVw3rtn2BUK7ORdIAHTyxHGRIHVReokCR3XjbckJMK7ms8FysBfhLR8IXnAgy7T0PTPNBWKiH514FOW/WSg=="
+    },
     "tslib@2.8.1": {
       "integrity": "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w=="
     },
@@ -3203,17 +3295,22 @@
     "https://deno.land/x/denoflate@1.2.1/mod.ts": "f5628e44b80b3d80ed525afa2ba0f12408e3849db817d47a883b801f9ce69dd6",
     "https://deno.land/x/denoflate@1.2.1/pkg/denoflate.js": "b9f9ad9457d3f12f28b1fb35c555f57443427f74decb403113d67364e4f2caf4",
     "https://deno.land/x/denoflate@1.2.1/pkg/denoflate_bg.wasm.js": "d581956245407a2115a3d7e8d85a9641c032940a8e810acbd59ca86afd34d44d",
-    "https://deno.land/x/esbuild@v0.20.1/mod.js": "d50e500b53ce67e31116beba3916b0f9275c0e1cc20bc5cadc0fc1b7a3b06fd9"
+    "https://deno.land/x/esbuild@v0.20.1/mod.js": "d50e500b53ce67e31116beba3916b0f9275c0e1cc20bc5cadc0fc1b7a3b06fd9",
+    "https://deno.land/x/esbuild@v0.24.2/mod.js": "8d1e46a6494585235b0514d37743ee48a4f6f0b8e00fca9d0a2e371914b1df0e"
   },
   "workspace": {
     "dependencies": [
+      "jsr:@colibri/core@~0.16.1",
+      "jsr:@fifo/convee@0.5",
       "jsr:@noble/curves@^1.8.0",
       "jsr:@noble/hashes@^1.6.1",
       "jsr:@std/path@1",
       "npm:@creit.tech/stellar-wallets-kit@^1.4.0",
       "npm:@stellar/stellar-base@14.1.0",
       "npm:@stellar/stellar-sdk@14.2.0",
-      "npm:buffer@^6.0.3"
+      "npm:asn1js@3.0.5",
+      "npm:buffer@^6.0.3",
+      "npm:tslib@2.5.0"
     ]
   }
 }

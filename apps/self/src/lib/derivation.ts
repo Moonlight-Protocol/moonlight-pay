@@ -22,20 +22,17 @@ let currentPassword: string | null = null;
 let p256: typeof import("@noble/curves/p256").p256 | null = null;
 let hkdf: typeof import("@noble/hashes/hkdf").hkdf | null = null;
 let sha256: typeof import("@noble/hashes/sha256").sha256 | null = null;
-let mapHashToField: typeof import("@noble/curves/abstract/modular").mapHashToField | null = null;
 
 async function loadCrypto() {
   if (!p256) {
     const curves = await import("@noble/curves/p256");
     const hkdfMod = await import("@noble/hashes/hkdf");
     const sha256Mod = await import("@noble/hashes/sha256");
-    const modular = await import("@noble/curves/abstract/modular");
     p256 = curves.p256;
     hkdf = hkdfMod.hkdf;
     sha256 = sha256Mod.sha256;
-    mapHashToField = modular.mapHashToField;
   }
-  return { p256: p256!, hkdf: hkdf!, sha256: sha256!, mapHashToField: mapHashToField! };
+  return { p256: p256!, hkdf: hkdf!, sha256: sha256! };
 }
 
 /** Set the derivation password for this session. */
@@ -88,12 +85,29 @@ export async function deriveUtxoKeypair(index: number): Promise<{
   // Step 3: HKDF expand 32 → 48 bytes
   const expanded = crypto.hkdf(crypto.sha256, seed, undefined, "application", 48);
 
-  // Step 4: Field reduction to P256 curve order
-  const privateScalarBytes = crypto.mapHashToField(expanded, crypto.p256.CURVE.n);
+  // Step 4-5: Reduce expanded 48 bytes to P256 private scalar (mod curve order)
+  // This follows FIPS 186-5 §A.2.1: interpret expanded bytes as big-endian integer,
+  // reduce mod n. Using 48 bytes (384 bits) eliminates modular bias.
+  const n = crypto.p256.CURVE.n;
+  let scalar = 0n;
+  for (let i = 0; i < expanded.length; i++) {
+    scalar = (scalar << 8n) | BigInt(expanded[i]);
+  }
+  scalar = scalar % n;
+  if (scalar === 0n) scalar = 1n; // Ensure non-zero
 
-  // Step 5: Convert to private key bytes and derive public key
-  const privateKey = new Uint8Array(privateScalarBytes);
+  const privateKey = new Uint8Array(32);
+  let temp = scalar;
+  for (let i = 31; i >= 0; i--) {
+    privateKey[i] = Number(temp & 0xFFn);
+    temp >>= 8n;
+  }
+
   const publicKey = crypto.p256.getPublicKey(privateKey, false); // uncompressed (65 bytes)
+
+  // Zero intermediate key material
+  seed.fill(0);
+  expanded.fill(0);
 
   return { publicKey, privateKey };
 }
@@ -118,5 +132,7 @@ export async function deriveUtxoKeypairs(
  */
 export async function getUtxoAddress(index: number): Promise<Uint8Array> {
   const kp = await deriveUtxoKeypair(index);
+  // Private key not needed — zero it immediately
+  kp.privateKey.fill(0);
   return kp.publicKey;
 }

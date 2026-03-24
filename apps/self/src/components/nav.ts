@@ -14,6 +14,7 @@ export function renderNav(): HTMLElement {
       <a href="#/" class="nav-brand">Moonlight Pay <span class="version-badge">v${appVersion}</span></a>
       <div class="nav-links">
         <a href="#/dashboard">Dashboard</a>
+        <a href="#/deposit">Deposit</a>
         <a href="#/send">Send</a>
         <a href="#/transactions">Transactions</a>
         <a href="#/demo">Demo</a>

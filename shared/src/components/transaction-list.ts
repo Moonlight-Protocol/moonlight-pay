@@ -3,12 +3,9 @@
  * Renders a table of transactions from the provider-platform API.
  */
 import { listTransactions } from "../api/client.ts";
+import { escapeHtml } from "../utils/dom.ts";
 
-export function escapeHtml(str: string): string {
-  const div = document.createElement("div");
-  div.textContent = str;
-  return div.innerHTML;
-}
+export { escapeHtml };
 
 export function formatAmount(stroops: string): string {
   try {
@@ -50,16 +47,7 @@ export function renderTransactionList(container: HTMLElement): void {
 
   listTransactions({ limit: 50 })
     .then(({ data }) => {
-      const txs = data.transactions as Array<{
-        id: string;
-        type: string;
-        status: string;
-        amount: string;
-        from?: string;
-        to?: string;
-        jurisdiction?: { from?: string; to?: string };
-        createdAt: string;
-      }>;
+      const txs = data.transactions;
 
       if (txs.length === 0) {
         container.innerHTML = `

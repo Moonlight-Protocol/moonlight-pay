@@ -2,6 +2,7 @@ import { page } from "../components/page.ts";
 import { escapeHtml } from "../lib/dom.ts";
 import { custodialSend } from "shared/api/client.ts";
 import { capture } from "shared/analytics/index.ts";
+import { parseStroops } from "shared/utils/amount.ts";
 
 function renderContent(): HTMLElement {
   const el = document.createElement("div");
@@ -48,7 +49,7 @@ function renderContent(): HTMLElement {
       return;
     }
 
-    const stroops = String(Math.round(amount * 10_000_000));
+    const stroops = String(parseStroops(amountStr));
 
     sendBtn.disabled = true;
     errorEl.hidden = true;
@@ -58,14 +59,23 @@ function renderContent(): HTMLElement {
     try {
       const { data } = await custodialSend(to, stroops);
 
-      capture("pay_custodial_send", { to: to.slice(0, 8), amount: stroops });
-      statusEl.textContent = `Sent! Bundle: ${escapeHtml(data.bundleId.slice(0, 12))}... Status: ${escapeHtml(data.status)}`;
+      capture("pay_custodial_send", { status: data.status });
+      if (data.status === "escrowed") {
+        statusEl.textContent = `Funds held in escrow until receiver completes KYC. Bundle: ${escapeHtml(data.bundleId.slice(0, 12))}...`;
+      } else {
+        statusEl.textContent = `Sent! Bundle: ${escapeHtml(data.bundleId.slice(0, 12))}... Status: ${escapeHtml(data.status)}`;
+      }
+
+      // Clear form and show success — keep button disabled briefly
+      (el.querySelector("#send-to") as HTMLInputElement).value = "";
+      (el.querySelector("#send-amount") as HTMLInputElement).value = "";
+      statusEl.textContent = "Transaction submitted";
+      sendBtn.disabled = false;
     } catch (error) {
       errorEl.textContent = error instanceof Error ? error.message : "Send failed";
       errorEl.hidden = false;
       statusEl.hidden = true;
       capture("pay_custodial_send_failed");
-    } finally {
       sendBtn.disabled = false;
     }
   });

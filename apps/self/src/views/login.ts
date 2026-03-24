@@ -73,7 +73,7 @@ export function loginView(): HTMLElement {
 
       setAuthToken(token);
       identify(address);
-      capture("pay_self_wallet_connected", { address });
+      capture("pay_self_wallet_connected");
 
       statusEl.textContent = "Wallet connected!";
       stepWallet.hidden = true;

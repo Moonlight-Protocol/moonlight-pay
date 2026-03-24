@@ -2,11 +2,12 @@
   "name": "@moonlight-protocol/moonlight-pay-self",
   "version": "0.1.0",
   "license": "MIT",
+  "exports": "./src/app.ts",
   "tasks": {
     "dev": "deno run --allow-all --watch src/server.ts",
     "build": "deno run --allow-all src/build.ts",
     "serve": "deno run --allow-all src/server.ts",
-    "test": "deno test --allow-all src/"
+    "test": "deno test --allow-all tests/"
   },
   "compilerOptions": {
     "strict": true,
@@ -17,10 +18,19 @@
     "@creit.tech/stellar-wallets-kit": "npm:@creit.tech/stellar-wallets-kit@^1.4.0",
     "stellar-base": "npm:@stellar/stellar-base@14.1.0",
     "stellar-sdk": "npm:@stellar/stellar-sdk@14.2.0",
+    "@stellar/stellar-sdk": "npm:@stellar/stellar-sdk@14.2.0",
+    "@stellar/stellar-sdk/contract": "npm:@stellar/stellar-sdk@14.2.0/contract",
+    "@noble/curves": "jsr:@noble/curves@^1.8.0",
     "@noble/curves/p256": "jsr:@noble/curves@^1.8.0/p256",
     "@noble/curves/abstract/modular": "jsr:@noble/curves@^1.8.0/abstract/modular",
+    "@noble/hashes": "jsr:@noble/hashes@^1.6.1",
     "@noble/hashes/sha256": "jsr:@noble/hashes@^1.6.1/sha256",
     "@noble/hashes/hkdf": "jsr:@noble/hashes@^1.6.1/hkdf",
+    "@moonlight/moonlight-sdk": "jsr:@moonlight/moonlight-sdk@^0.7.0",
+    "@colibri/core": "jsr:@colibri/core@^0.16.1",
+    "@fifo/convee": "jsr:@fifo/convee@^0.5.0",
+    "asn1js": "npm:asn1js@3.0.5",
+    "tslib": "npm:tslib@2.5.0",
     "buffer": "npm:buffer@^6.0.3",
     "shared/": "../../shared/src/"
   }

@@ -7,6 +7,7 @@ import { WalletNetwork } from "@creit.tech/stellar-wallets-kit/types.mjs";
 import { FreighterModule, FREIGHTER_ID } from "@creit.tech/stellar-wallets-kit/modules/freighter.module.mjs";
 import "@creit.tech/stellar-wallets-kit/components/modal/stellar-wallets-modal.mjs";
 import { STELLAR_NETWORK, getNetworkPassphrase, API_BASE_URL } from "./config.ts";
+import { setAuthToken } from "shared/api/client.ts";
 
 const TOKEN_KEY = "moonlight_pay_self_token";
 const ADDRESS_KEY = "moonlight_pay_self_address";
@@ -70,6 +71,7 @@ export function clearSession(): void {
   connectedAddress = null;
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(ADDRESS_KEY);
+  setAuthToken(null);
 }
 
 /**

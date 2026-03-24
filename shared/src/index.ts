@@ -1,6 +1,10 @@
 export * from "./types/index.ts";
 export * from "./api/client.ts";
 export * from "./analytics/index.ts";
-export { renderTransactionList, formatAmount, escapeHtml } from "./components/transaction-list.ts";
+export { renderTransactionList, formatAmount } from "./components/transaction-list.ts";
 export { renderErrorReport } from "./components/error-report.ts";
 export { renderDemoTab } from "./components/demo-tab.ts";
+export { escapeHtml, renderError } from "./utils/dom.ts";
+export { bytesToHex, hexToBytes } from "./utils/hex.ts";
+export { parseStroops } from "./utils/amount.ts";
+export { route, navigate, onCleanup, startRouter } from "./lib/router.ts";

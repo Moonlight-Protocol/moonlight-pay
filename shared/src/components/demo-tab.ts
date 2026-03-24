@@ -3,12 +3,7 @@
  * Add addresses with simulated KYC data and trigger "simulate KYC complete".
  */
 import { simulateKyc } from "../api/client.ts";
-
-export function escapeHtml(str: string): string {
-  const div = document.createElement("div");
-  div.textContent = str;
-  return div.innerHTML;
-}
+import { escapeHtml } from "../utils/dom.ts";
 
 interface DemoAddress {
   address: string;
