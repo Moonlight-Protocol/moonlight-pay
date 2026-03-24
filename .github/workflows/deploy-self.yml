@@ -18,6 +18,7 @@ jobs:
           API_BASE_URL: ${{ secrets.API_BASE_URL }}
           CHANNEL_CONTRACT_ID: ${{ secrets.CHANNEL_CONTRACT_ID }}
           CHANNEL_AUTH_ID: ${{ secrets.CHANNEL_AUTH_ID }}
+          CHANNEL_ASSET_ID: ${{ secrets.CHANNEL_ASSET_ID }}
           POSTHOG_KEY: ${{ secrets.POSTHOG_PROJECT_TOKEN }}
         run: |
           deno eval "
@@ -28,6 +29,7 @@ jobs:
               apiBaseUrl: Deno.env.get('API_BASE_URL'),
               channelContractId: Deno.env.get('CHANNEL_CONTRACT_ID'),
               channelAuthId: Deno.env.get('CHANNEL_AUTH_ID'),
+              channelAssetId: Deno.env.get('CHANNEL_ASSET_ID'),
               posthogKey: Deno.env.get('POSTHOG_KEY'),
               posthogHost: 'https://us.i.posthog.com',
             };
