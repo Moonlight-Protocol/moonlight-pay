@@ -13,7 +13,7 @@ function getCSP(): string {
   const apiUrl = Deno.env.get("API_BASE_URL") || "http://localhost:3010";
   return [
     "default-src 'self'",
-    "script-src 'self' https://us-assets.i.posthog.com",
+    "script-src 'self'",
     "style-src 'self' 'unsafe-inline'",
     `connect-src 'self' ${apiUrl} https://us.i.posthog.com`,
   ].join("; ");

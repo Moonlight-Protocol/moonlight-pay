@@ -1,6 +1,6 @@
 {
   "name": "@moonlight-protocol/moonlight-pay-custodial",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "license": "MIT",
   "exports": "./src/app.ts",
   "tasks": {
@@ -15,6 +15,7 @@
   },
   "imports": {
     "@std/path": "jsr:@std/path@^1.0.0",
+    "posthog-js": "npm:posthog-js@^1.236.0",
     "shared/": "../../shared/src/"
   }
 }
