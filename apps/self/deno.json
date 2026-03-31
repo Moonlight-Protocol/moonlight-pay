@@ -32,6 +32,7 @@
     "asn1js": "npm:asn1js@3.0.5",
     "tslib": "npm:tslib@2.5.0",
     "buffer": "npm:buffer@^6.0.3",
+    "posthog-js": "npm:posthog-js@^1.236.0",
     "shared/": "../../shared/src/"
   }
 }

@@ -15,6 +15,7 @@
   },
   "imports": {
     "@std/path": "jsr:@std/path@^1.0.0",
+    "posthog-js": "npm:posthog-js@^1.236.0",
     "shared/": "../../shared/src/"
   }
 }
