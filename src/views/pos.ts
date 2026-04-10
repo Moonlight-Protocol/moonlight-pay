@@ -15,6 +15,7 @@
 import { escapeHtml, friendlyError } from "../lib/dom.ts";
 import { getPayPlatformUrl } from "../lib/config.ts";
 import { executeInstantPayment } from "../lib/instant-payment.ts";
+import { executeSelfCustodialPayment } from "../lib/selfcustodial-payment.ts";
 import {
   connectWallet,
   getConnectedAddress,
@@ -212,15 +213,74 @@ export async function posView(): Promise<HTMLElement> {
         return;
       }
       errorEl.hidden = true;
-      statusEl.hidden = false;
-      // TODO: implement self-custodial payment flow
-      // 1. Connect customer's wallet
-      // 2. Derive master seed + UTXO keys
-      // 3. Check channel balance, deposit if needed
-      // 4. Build send bundle (SPEND → merchant's receive UTXOs)
-      // 5. Submit to PP
-      statusEl.textContent =
-        "Self-custodial payment flow — implementation in progress";
+
+      // Show password input for UTXO derivation key
+      const methodsDiv = container.querySelector(".pos-methods")!;
+      methodsDiv.innerHTML = `
+        <h3>Self-custodial — Enter your password</h3>
+        <p style="font-size:0.85rem;color:var(--text-muted)">
+          Your password controls your UTXO derivation. Same wallet + same
+          password = same keys every time.
+        </p>
+        <div class="form-group">
+          <input type="password" id="sc-password" placeholder="Your UTXO password" autocomplete="off" />
+        </div>
+        <button id="sc-pay-btn" class="btn-primary btn-wide">Pay ${amount} XLM</button>
+      `;
+
+      container
+        .querySelector("#sc-pay-btn")
+        ?.addEventListener("click", async () => {
+          const passwordInput = container.querySelector(
+            "#sc-password",
+          ) as HTMLInputElement;
+          const pw = passwordInput?.value;
+          if (!pw) {
+            errorEl.hidden = false;
+            errorEl.textContent = "Password is required";
+            return;
+          }
+          errorEl.hidden = true;
+          statusEl.hidden = false;
+
+          try {
+            let customerWallet = getConnectedAddress();
+            if (!customerWallet) {
+              statusEl.textContent = "Connect your wallet...";
+              customerWallet = await connectWallet();
+            }
+
+            // deno-lint-ignore no-explicit-any
+            const kit = (globalThis as any).__moonlightWalletKit;
+            if (!kit) {
+              throw new Error(
+                "Wallet kit not initialized. Please refresh and try again.",
+              );
+            }
+            const signer = createWalletSigner(kit);
+
+            const result = await executeSelfCustodialPayment({
+              customerWallet,
+              merchantWallet: params.merchantWallet,
+              amountXlm: amount!.toString(),
+              password: pw,
+              description: params.description ?? undefined,
+              signer,
+              signMessage,
+              payerJurisdiction: params.jurisdiction ?? undefined,
+              onStatus: (msg) => {
+                statusEl.textContent = msg;
+              },
+            });
+
+            statusEl.textContent =
+              `Payment complete! TX: ${result.transactionId}`;
+          } catch (err) {
+            statusEl.hidden = true;
+            errorEl.hidden = false;
+            errorEl.textContent = friendlyError(err);
+          }
+        });
     });
 
   return container;
