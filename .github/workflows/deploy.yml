@@ -1,0 +1,62 @@
+name: Deploy to Tigris
+
+# Tighter pattern than v* — only fires on numeric semver tags so a typo'd
+# or experimental tag like `v-experimental` can't accidentally deploy.
+on:
+  push:
+    tags: ["v[0-9]*"]
+
+env:
+  DENO_VERSION: v2.7.x
+
+jobs:
+  # Re-run the full check/lint/fmt/test/build pipeline against the tagged
+  # commit. The auto-version workflow tags main without re-running tests,
+  # so without this job a failing main commit could ship to production.
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: ${{ env.DENO_VERSION }}
+      - run: deno task check
+      - run: deno task lint
+      - run: deno task fmt:check
+      - run: deno task test
+      - run: deno task build -- --production
+
+  deploy:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: ${{ env.DENO_VERSION }}
+
+      - name: Generate production config
+        run: |
+          cat > public/config.js << EOF
+          window.__PAY_CONFIG__ = {
+            environment: "production",
+            stellarNetwork: "${{ secrets.STELLAR_NETWORK }}",
+            payPlatformUrl: "${{ secrets.PAY_PLATFORM_URL }}"
+          };
+          EOF
+
+      - name: Build production bundle
+        run: deno task build -- --production
+
+      - name: Deploy to Tigris
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.TIGRIS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.TIGRIS_SECRET_ACCESS_KEY }}
+          AWS_REGION: auto
+        run: |
+          aws s3 sync public/ s3://moonlight-pay/ \
+            --endpoint-url https://fly.storage.tigris.dev \
+            --acl public-read \
+            --delete \
+            --no-progress

@@ -1,0 +1,56 @@
+name: Auto Tag
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "deno.json"
+
+env:
+  DENO_VERSION: v2.7.x
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.AUTO_VERSION_TOKEN }}
+          persist-credentials: true
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: ${{ env.DENO_VERSION }}
+
+      - name: Read version from deno.json
+        id: version
+        run: |
+          # Use deno to parse deno.json — this preserves pre-release suffixes
+          # (0.1.0-beta.1) and build metadata (+sha.abc) that a grep/sed
+          # version would silently truncate.
+          VERSION=$(deno eval --quiet "console.log(JSON.parse(Deno.readTextFileSync('deno.json')).version)")
+          if [ -z "$VERSION" ] || [ "$VERSION" = "undefined" ]; then
+            echo "::error::deno.json is missing a 'version' field"
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Resolved version: v$VERSION"
+
+      - name: Check if tag exists
+        id: check
+        run: |
+          if git rev-parse "refs/tags/${{ steps.version.outputs.tag }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create tag
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          git tag ${{ steps.version.outputs.tag }}
+          git push origin ${{ steps.version.outputs.tag }}
