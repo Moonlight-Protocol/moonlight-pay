@@ -12,8 +12,15 @@
  *
  * The customer connects their wallet and pays through the selected method.
  */
-import { escapeHtml } from "../lib/dom.ts";
+import { escapeHtml, friendlyError } from "../lib/dom.ts";
 import { getPayPlatformUrl } from "../lib/config.ts";
+import { executeInstantPayment } from "../lib/instant-payment.ts";
+import {
+  connectWallet,
+  getConnectedAddress,
+  signMessage,
+} from "../lib/wallet.ts";
+import { createWalletSigner } from "../lib/wallet-signer.ts";
 
 interface MerchantInfo {
   walletPublicKey: string;
@@ -145,7 +152,7 @@ export async function posView(): Promise<HTMLElement> {
   // Crypto Instant
   container
     .querySelector("#pay-instant-btn")
-    ?.addEventListener("click", () => {
+    ?.addEventListener("click", async () => {
       const amount = getAmount();
       if (!amount) {
         errorEl.hidden = false;
@@ -154,13 +161,44 @@ export async function posView(): Promise<HTMLElement> {
       }
       errorEl.hidden = true;
       statusEl.hidden = false;
-      // TODO: implement instant payment flow
-      // 1. Connect customer's wallet
-      // 2. Build simple XLM payment to PP address
-      // 3. Customer signs via Freighter
-      // 4. PP handles deposit + send to merchant's receive UTXOs
-      statusEl.textContent =
-        "Instant payment flow — implementation in progress";
+
+      try {
+        // Connect customer's wallet if not already connected
+        statusEl.textContent = "Connect your wallet...";
+        let customerWallet = getConnectedAddress();
+        if (!customerWallet) {
+          customerWallet = await connectWallet();
+        }
+
+        // Get the wallets-kit instance for the Signer adapter
+        // deno-lint-ignore no-explicit-any
+        const kit = (globalThis as any).__moonlightWalletKit;
+        if (!kit) {
+          throw new Error(
+            "Wallet kit not initialized. Please refresh and try again.",
+          );
+        }
+        const signer = createWalletSigner(kit);
+
+        const result = await executeInstantPayment({
+          customerWallet,
+          merchantWallet: params.merchantWallet,
+          amountXlm: amount.toString(),
+          description: params.description ?? undefined,
+          signer,
+          signMessage,
+          payerJurisdiction: params.jurisdiction ?? undefined,
+          onStatus: (msg) => {
+            statusEl.textContent = msg;
+          },
+        });
+
+        statusEl.textContent = `Payment complete! TX: ${result.transactionId}`;
+      } catch (err) {
+        statusEl.hidden = true;
+        errorEl.hidden = false;
+        errorEl.textContent = friendlyError(err);
+      }
     });
 
   // Crypto Self-custodial

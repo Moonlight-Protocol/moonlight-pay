@@ -80,6 +80,7 @@ await esbuild.build({
   format: "esm",
   platform: "browser",
   target: "es2022",
+  supported: { decorators: false },
   minify: isProduction,
   sourcemap: !isProduction,
   define: {
