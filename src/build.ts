@@ -91,7 +91,8 @@ await esbuild.build({
   treeShaking: false,
   plugins: [
     bufferShimPlugin,
-    ...denoPlugins({ configPath: DENO_JSON }),
+    // deno-lint-ignore no-explicit-any
+    ...(denoPlugins({ configPath: DENO_JSON }) as any[]),
   ],
 });
 
