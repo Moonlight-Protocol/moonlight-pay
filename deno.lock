@@ -3362,6 +3362,7 @@
   "workspace": {
     "dependencies": [
       "jsr:@luca/esbuild-deno-loader@~0.10.3",
+      "jsr:@moonlight/moonlight-sdk@0.7",
       "jsr:@std/assert@~0.213.1",
       "jsr:@std/path@1",
       "npm:@creit.tech/stellar-wallets-kit@^1.4.0",

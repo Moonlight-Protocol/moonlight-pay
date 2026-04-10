@@ -26,7 +26,10 @@ import {
   getMe,
   isPlatformAuthed,
   SessionExpiredError,
+  storeReceiveUtxos,
 } from "../lib/api.ts";
+import { deriveReceiveUtxos } from "../lib/utxo-derivation.ts";
+import { getMasterSeed } from "../lib/wallet.ts";
 import { navigate } from "../lib/router.ts";
 import { COUNTRY_CODES } from "../lib/jurisdictions.ts";
 import { escapeHtml, friendlyError, truncateAddress } from "../lib/dom.ts";
@@ -283,6 +286,15 @@ function renderSignupForm(container: HTMLElement): HTMLElement {
         jurisdictionCountryCode,
         displayName: displayName || undefined,
       });
+
+      // Generate and store receive UTXOs — the "Setting up your account" step.
+      // Uses the master seed (still in memory from the sign-in flow) + email
+      // to derive 100 P256 receive addresses.
+      statusEl.textContent = "Generating receive addresses...";
+      const seed = getMasterSeed();
+      const utxos = await deriveReceiveUtxos(seed, email);
+      await storeReceiveUtxos(utxos);
+
       navigate("/");
     } catch (err) {
       signupBtn.disabled = false;

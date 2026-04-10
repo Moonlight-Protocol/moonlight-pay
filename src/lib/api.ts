@@ -331,3 +331,66 @@ export async function updateMe(input: UpdateAccountInput): Promise<PayAccount> {
     "PATCH /account/me",
   );
 }
+
+// ─── Receive UTXOs ──────────────────────────────────────────
+
+export async function storeReceiveUtxos(
+  utxos: Array<{ utxoPublicKey: string; derivationIndex: number }>,
+): Promise<{ count: number }> {
+  const res = await payFetch("/api/v1/utxo/receive", {
+    method: "POST",
+    body: JSON.stringify({ utxos }),
+  });
+  if (!res.ok) await throwFromErrorResponse(res, "Store UTXOs failed");
+  return unwrapData<{ count: number }>(
+    await parseJsonBody(res),
+    "POST /utxo/receive",
+  );
+}
+
+// ─── Transactions ───────────────────────────────────────────
+
+export interface Balance {
+  balanceStroops: string;
+  balanceXlm: string;
+}
+
+export async function getBalance(): Promise<Balance> {
+  const res = await payFetch("/api/v1/transactions/balance");
+  if (!res.ok) await throwFromErrorResponse(res, "Get balance failed");
+  return unwrapData<Balance>(
+    await parseJsonBody(res),
+    "GET /transactions/balance",
+  );
+}
+
+export interface TransactionSummary {
+  id: string;
+  direction: "IN" | "OUT";
+  status: "PENDING" | "COMPLETED" | "FAILED";
+  method: string;
+  amountStroops: string;
+  amountXlm: string;
+  feeStroops: string;
+  counterparty: string | null;
+  description: string | null;
+  createdAt: string;
+  completedAt: string | null;
+}
+
+export async function listTransactions(
+  opts?: { direction?: "IN" | "OUT"; limit?: number; offset?: number },
+): Promise<TransactionSummary[]> {
+  const params = new URLSearchParams();
+  if (opts?.direction) params.set("direction", opts.direction);
+  if (opts?.limit) params.set("limit", String(opts.limit));
+  if (opts?.offset) params.set("offset", String(opts.offset));
+  const qs = params.toString();
+  const path = `/api/v1/transactions${qs ? `?${qs}` : ""}`;
+  const res = await payFetch(path);
+  if (!res.ok) await throwFromErrorResponse(res, "List transactions failed");
+  return unwrapData<TransactionSummary[]>(
+    await parseJsonBody(res),
+    "GET /transactions",
+  );
+}

@@ -26,10 +26,16 @@ export class RedirectAbort extends Error {
 }
 
 const routes = new Map<string, RouteHandler>();
+const prefixRoutes: Array<{ prefix: string; handler: RouteHandler }> = [];
 let renderToken = 0;
 
 export function route(path: string, handler: RouteHandler): void {
   routes.set(path, handler);
+}
+
+/** Register a handler for all paths starting with `prefix`. */
+export function routePrefix(prefix: string, handler: RouteHandler): void {
+  prefixRoutes.push({ prefix, handler });
 }
 
 export function navigate(path: string, opts?: { force?: boolean }): void {
@@ -51,7 +57,16 @@ async function render(): Promise<void> {
     ? hash.slice(1).split("?")[0]
     : hash.split("?")[0];
 
-  const handler = routes.get(path) || routes.get("/404");
+  let handler = routes.get(path);
+  if (!handler) {
+    for (const pr of prefixRoutes) {
+      if (path.startsWith(pr.prefix)) {
+        handler = pr.handler;
+        break;
+      }
+    }
+  }
+  if (!handler) handler = routes.get("/404");
   if (!handler) return;
 
   const app = document.getElementById("app");
