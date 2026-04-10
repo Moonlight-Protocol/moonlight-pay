@@ -177,6 +177,53 @@ function base64UrlToBytes(b64url: string): Uint8Array {
  *     }}
  *   }
  */
+/**
+ * Derive a full P-256 keypair (public + private) from a 32-byte seed.
+ * Used by the instant payment flow to generate temporary hop keys.
+ * The private key is needed to sign SPEND operations.
+ */
+export async function deriveP256KeyPairFromSeed(
+  seed: Uint8Array,
+): Promise<{ publicKey: Uint8Array; privateKey: Uint8Array }> {
+  const seedBuf = new ArrayBuffer(seed.length);
+  new Uint8Array(seedBuf).set(seed);
+  const expandKey = await crypto.subtle.importKey(
+    "raw",
+    seedBuf,
+    "HKDF",
+    false,
+    ["deriveBits"],
+  );
+  const expanded = await crypto.subtle.deriveBits(
+    {
+      name: "HKDF",
+      hash: "SHA-256",
+      salt: new Uint8Array(0),
+      info: new TextEncoder().encode("moonlight-p256"),
+    },
+    expandKey,
+    384,
+  );
+  const privateKeyBytes = new Uint8Array(expanded).slice(0, 32);
+
+  const cryptoKey = await crypto.subtle.importKey(
+    "pkcs8",
+    buildPkcs8P256(privateKeyBytes).buffer as ArrayBuffer,
+    { name: "ECDSA", namedCurve: "P-256" },
+    true,
+    ["sign"],
+  );
+  const jwk = await crypto.subtle.exportKey("jwk", cryptoKey);
+  const x = base64UrlToBytes(jwk.x!);
+  const y = base64UrlToBytes(jwk.y!);
+  const publicKey = new Uint8Array(65);
+  publicKey[0] = 0x04;
+  publicKey.set(x, 1);
+  publicKey.set(y, 33);
+
+  return { publicKey, privateKey: privateKeyBytes };
+}
+
 function buildPkcs8P256(rawPrivateKey: Uint8Array): Uint8Array {
   // DER-encoded PKCS#8 header for P-256 (fixed bytes)
   const header = new Uint8Array([
