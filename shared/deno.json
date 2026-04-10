@@ -1,8 +1,0 @@
-{
-  "compilerOptions": {
-    "lib": ["deno.ns", "dom", "dom.iterable"]
-  },
-  "tasks": {
-    "test": "deno test --allow-all tests/"
-  }
-}
