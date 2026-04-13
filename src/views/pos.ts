@@ -63,7 +63,14 @@ async function fetchMerchantInfo(
     if (res.status === 404) return null;
     if (res.status === 503) {
       // Account exists but no UTXOs — merchant hasn't set up receive addresses
-      return { merchant: { walletPublicKey, displayName: null, jurisdictionCountryCode: "" }, hasUtxos: false };
+      return {
+        merchant: {
+          walletPublicKey,
+          displayName: null,
+          jurisdictionCountryCode: "",
+        },
+        hasUtxos: false,
+      };
     }
     if (!res.ok) return null;
     const body = await res.json();

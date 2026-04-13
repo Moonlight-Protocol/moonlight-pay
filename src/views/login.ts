@@ -34,53 +34,6 @@ import { navigate } from "../lib/router.ts";
 import { COUNTRY_CODES } from "../lib/jurisdictions.ts";
 import { escapeHtml, friendlyError, truncateAddress } from "../lib/dom.ts";
 
-/**
- * Conservative retry list for wallet calls. We only retry on errors whose
- * message *clearly* indicates a transient condition — never on unknown or
- * cancellation errors. The earlier "retry on anything that doesn't look
- * like a cancel" approach was too aggressive: any unknown wording would
- * pop the wallet UI 3 times before failing.
- */
-const RETRYABLE_PATTERNS = [
-  /\btimeout\b/i,
-  /\btimed out\b/i,
-  /\bnetwork\b/i,
-  /\bbusy\b/i,
-  /\btoo many requests\b/i,
-  /\bnot ready\b/i,
-];
-
-function isRetryable(err: unknown): boolean {
-  const msg = err instanceof Error ? err.message : String(err);
-  return RETRYABLE_PATTERNS.some((re) => re.test(msg));
-}
-
-/**
- * Retry a wallet call only on known transient conditions (network blip,
- * "wallet busy", timeout). Any other error — including user rejection —
- * propagates immediately so we don't pop a wallet prompt three times for
- * a permanent failure.
- */
-async function withWalletRetry<T>(
-  fn: () => Promise<T>,
-  attempts = 3,
-  baseDelayMs = 400,
-): Promise<T> {
-  let lastErr: unknown;
-  for (let i = 0; i < attempts; i++) {
-    try {
-      return await fn();
-    } catch (err) {
-      lastErr = err;
-      if (!isRetryable(err) || i === attempts - 1) {
-        throw err;
-      }
-      await new Promise((r) => setTimeout(r, baseDelayMs * (i + 1)));
-    }
-  }
-  throw lastErr;
-}
-
 export async function loginView(): Promise<HTMLElement> {
   const container = document.createElement("div");
   container.className = "login-container";
@@ -156,7 +109,7 @@ function renderConnectStep(
 
       // Freighter rejects consecutive signMessage calls without a delay
       // between them. initMasterSeed signs once, authenticate signs again.
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise((r) => setTimeout(r, 1000));
 
       // Step 3: authenticate with pay-platform (challenge-response).
       connectBtn.textContent = "Authenticating...";

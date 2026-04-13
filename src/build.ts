@@ -76,7 +76,7 @@ if (appJs === before) {
   esbuild.stop();
   throw new Error(
     "Build failed: could not patch __require for buffer polyfill. " +
-    "esbuild's CJS shim format may have changed.",
+      "esbuild's CJS shim format may have changed.",
   );
 }
 
@@ -90,9 +90,13 @@ appJs = appJs.replace(
 appJs = appJs.replace(
   /import\s*\{([^}]*)\}\s*from\s*"node:buffer"\s*;?/g,
   (_match, names) => {
-    const exports = names.split(",").map((n: string) => n.trim()).filter(Boolean);
-    return exports.map((n) => {
-      const [original, alias] = n.split(/\s+as\s+/).map((s: string) => s.trim());
+    const exports = names.split(",").map((n: string) => n.trim()).filter(
+      Boolean,
+    );
+    return exports.map((n: string) => {
+      const [original, alias] = n.split(/\s+as\s+/).map((s: string) =>
+        s.trim()
+      );
       const localName = alias || original;
       if (original === "Buffer") {
         return `var ${localName} = globalThis.__buffer_polyfill.Buffer;`;
@@ -106,11 +110,15 @@ appJs = appJs.replace(
 appJs = appJs.replace(
   /import\s*\{([^}]*)\}\s*from\s*"node:crypto"\s*;?/g,
   (_match, names) => {
-    const exports = names.split(",").map((n: string) => n.trim()).filter(Boolean);
+    const exports = names.split(",").map((n: string) => n.trim()).filter(
+      Boolean,
+    );
     const shims: string[] = [];
     for (const name of exports) {
       if (name === "randomBytes") {
-        shims.push("var randomBytes = (size) => globalThis.crypto.getRandomValues(new Uint8Array(size));");
+        shims.push(
+          "var randomBytes = (size) => globalThis.crypto.getRandomValues(new Uint8Array(size));",
+        );
       }
     }
     return shims.join("\n");
