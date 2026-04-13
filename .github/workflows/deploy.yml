@@ -55,7 +55,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.TIGRIS_SECRET_ACCESS_KEY }}
           AWS_REGION: auto
         run: |
-          aws s3 sync public/ s3://moonlight-pay/ \
+          aws s3 sync public/ s3://moonlight-pay-app/ \
             --endpoint-url https://fly.storage.tigris.dev \
             --acl public-read \
             --delete \
