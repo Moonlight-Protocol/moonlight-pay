@@ -124,7 +124,6 @@ function renderConnectStep(
 
       <button id="connect-btn" class="btn-primary btn-wide">Connect Wallet</button>
 
-      <p id="connect-status" class="hint-text" hidden></p>
       <p id="connect-error" class="error-text" hidden></p>
     </div>
   `;
@@ -132,9 +131,6 @@ function renderConnectStep(
   const connectBtn = container.querySelector(
     "#connect-btn",
   ) as HTMLButtonElement;
-  const statusEl = container.querySelector(
-    "#connect-status",
-  ) as HTMLParagraphElement;
   const errorEl = container.querySelector(
     "#connect-error",
   ) as HTMLParagraphElement;
@@ -145,32 +141,31 @@ function renderConnectStep(
   }
 
   connectBtn.addEventListener("click", async () => {
+    const originalText = connectBtn.textContent;
     connectBtn.disabled = true;
     errorEl.hidden = true;
-    statusEl.hidden = false;
 
     try {
       // Step 1: connect
-      statusEl.textContent = "Connecting to wallet...";
+      connectBtn.textContent = "Connecting...";
       await connectWallet();
 
-      // Step 2: derive master seed (single signature). Wrapped in
-      // withWalletRetry because Freighter occasionally fails the first
-      // signMessage right after the connect handshake.
-      statusEl.textContent = "Deriving master key...";
-      await withWalletRetry(() => initMasterSeed());
+      // Step 2: derive master seed (single signature).
+      connectBtn.textContent = "Setting up...";
+      await initMasterSeed();
+
+      // Freighter rejects consecutive signMessage calls without a delay
+      // between them. initMasterSeed signs once, authenticate signs again.
+      await new Promise(r => setTimeout(r, 1000));
 
       // Step 3: authenticate with pay-platform (challenge-response).
-      // Same retry: two consecutive signMessage calls can race the wallet.
-      statusEl.textContent = "Signing in to Moonlight Pay...";
+      connectBtn.textContent = "Authenticating...";
       const publicKey = getConnectedAddress();
       if (!publicKey) throw new Error("Wallet not connected");
-      await withWalletRetry(() =>
-        authenticate({ publicKey, sign: signMessage })
-      );
+      await authenticate({ publicKey, sign: signMessage });
 
       // Step 4: check for existing account
-      statusEl.textContent = "Loading account...";
+      connectBtn.textContent = "Loading...";
       const account = await getMe();
       if (account) {
         navigate("/");
@@ -180,8 +175,8 @@ function renderConnectStep(
       // No account yet — render signup form
       renderSignupForm(container);
     } catch (err) {
+      connectBtn.textContent = originalText;
       connectBtn.disabled = false;
-      statusEl.hidden = true;
       errorEl.hidden = false;
       errorEl.textContent = friendlyError(err);
       // If we got partway through, clear so the user can retry cleanly

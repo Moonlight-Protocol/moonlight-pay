@@ -1,13 +1,14 @@
 /**
  * Bundles src/app.ts into public/app.js for the browser.
  *
- * Uses esbuild via npm (deno.land/x/esbuild is deprecated) and the deno
- * loader plugin for import-map resolution. A small inline plugin handles
- * the `buffer` import that the wallets-kit transitive deps depend on:
- * instead of post-build regex-patching esbuild's CJS shim, we intercept
- * any `import "buffer"` (or static `require("buffer")`) at resolve time
- * and route it to a virtual module that re-exports the Buffer polyfill
- * we install on `globalThis` via the inject shim.
+ * Uses esbuild via npm and the deno loader plugin for import-map resolution.
+ * After bundling, applies post-build patches for Node built-ins that leak
+ * through transitive deps:
+ *   - `buffer`: CJS __require("buffer") patched to return globalThis polyfill,
+ *     bare ESM imports removed (polyfill injected via src/shims/buffer.ts)
+ *   - `node:crypto`: ESM import replaced with Web Crypto shim
+ *
+ * This matches the approach used by council-console and provider-console.
  *
  * IMPORTANT — DO NOT REMOVE the `stellar-sdk` entry from deno.json's
  * imports. It looks unused (no `import` from src/) but it's load-bearing:
@@ -27,8 +28,6 @@ import * as esbuild from "esbuild";
 import { denoPlugins } from "@luca/esbuild-deno-loader";
 import { fromFileUrl, resolve } from "@std/path";
 
-// Resolve build inputs against this file's location, not the cwd, so the
-// build works regardless of where `deno task build` is invoked from.
 const SRC_DIR = fromFileUrl(new URL(".", import.meta.url));
 const PROJECT_ROOT = resolve(SRC_DIR, "..");
 const ENTRY_POINT = resolve(SRC_DIR, "app.ts");
@@ -39,39 +38,6 @@ const DENO_JSON = resolve(PROJECT_ROOT, "deno.json");
 const isProduction = Deno.args.includes("--production");
 const denoJson = JSON.parse(await Deno.readTextFile(DENO_JSON));
 const version = denoJson.version ?? "0.0.0";
-
-/**
- * Intercept any `buffer` import (ESM or static CJS require) and resolve it
- * to a virtual module that pulls the Buffer constructor off globalThis,
- * where the inject shim has placed it. Listed BEFORE denoPlugins so it
- * wins the resolve race for the literal `buffer` specifier.
- */
-const bufferShimPlugin: esbuild.Plugin = {
-  name: "moonlight-buffer-polyfill",
-  setup(build) {
-    build.onResolve({ filter: /^buffer$/ }, () => ({
-      path: "buffer",
-      namespace: "moonlight-buffer-polyfill",
-    }));
-    build.onLoad(
-      { filter: /.*/, namespace: "moonlight-buffer-polyfill" },
-      () => ({
-        contents: `
-          const polyfill = globalThis.__buffer_polyfill;
-          if (!polyfill || !polyfill.Buffer) {
-            throw new Error(
-              "Buffer polyfill missing on globalThis. " +
-              "src/shims/buffer.ts must be injected into the bundle."
-            );
-          }
-          export const Buffer = polyfill.Buffer;
-          export default polyfill;
-        `,
-        loader: "js",
-      }),
-    );
-  },
-};
 
 await esbuild.build({
   entryPoints: [ENTRY_POINT],
@@ -90,11 +56,68 @@ await esbuild.build({
   inject: [BUFFER_SHIM],
   treeShaking: false,
   plugins: [
-    bufferShimPlugin,
     // deno-lint-ignore no-explicit-any
     ...(denoPlugins({ configPath: DENO_JSON }) as any[]),
   ],
 });
+
+// ─── Post-build patches ────────────────────────────────────────
+let appJs = await Deno.readTextFile(OUTFILE);
+const before = appJs;
+
+// 1. Patch __require: intercept require("buffer") before it throws
+appJs = appJs.replace(
+  /throw\s*(Error\('Dynamic require of "'\s*\+\s*(\w+)\s*\+\s*'" is not supported'\))/,
+  (_match, errExpr, varName) =>
+    `if(${varName}==="buffer")return globalThis.__buffer_polyfill;throw ${errExpr}`,
+);
+
+if (appJs === before) {
+  esbuild.stop();
+  throw new Error(
+    "Build failed: could not patch __require for buffer polyfill. " +
+    "esbuild's CJS shim format may have changed.",
+  );
+}
+
+// 2. Remove bare ESM buffer imports
+appJs = appJs.replace(
+  /import\s*\{[^}]*\}\s*from\s*"buffer"\s*;?/g,
+  "",
+);
+
+// 3. Replace node:buffer imports with polyfill reference
+appJs = appJs.replace(
+  /import\s*\{([^}]*)\}\s*from\s*"node:buffer"\s*;?/g,
+  (_match, names) => {
+    const exports = names.split(",").map((n: string) => n.trim()).filter(Boolean);
+    return exports.map((n) => {
+      const [original, alias] = n.split(/\s+as\s+/).map((s: string) => s.trim());
+      const localName = alias || original;
+      if (original === "Buffer") {
+        return `var ${localName} = globalThis.__buffer_polyfill.Buffer;`;
+      }
+      return `var ${localName} = globalThis.__buffer_polyfill.${original};`;
+    }).join("\n");
+  },
+);
+
+// 4. Replace node:crypto import with Web Crypto shim
+appJs = appJs.replace(
+  /import\s*\{([^}]*)\}\s*from\s*"node:crypto"\s*;?/g,
+  (_match, names) => {
+    const exports = names.split(",").map((n: string) => n.trim()).filter(Boolean);
+    const shims: string[] = [];
+    for (const name of exports) {
+      if (name === "randomBytes") {
+        shims.push("var randomBytes = (size) => globalThis.crypto.getRandomValues(new Uint8Array(size));");
+      }
+    }
+    return shims.join("\n");
+  },
+);
+
+await Deno.writeTextFile(OUTFILE, appJs);
 
 esbuild.stop();
 console.log(`Built public/app.js${isProduction ? " (production)" : ""}`);

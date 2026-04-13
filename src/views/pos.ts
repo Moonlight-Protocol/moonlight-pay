@@ -55,15 +55,21 @@ function parsePosParams(): PosParams {
 
 async function fetchMerchantInfo(
   walletPublicKey: string,
-): Promise<MerchantInfo | null> {
+): Promise<{ merchant: MerchantInfo; hasUtxos: boolean } | null> {
   try {
     const res = await fetch(
       `${getPayPlatformUrl()}/api/v1/utxo/receive/${walletPublicKey}/available?count=1`,
     );
     if (res.status === 404) return null;
+    if (res.status === 503) {
+      // Account exists but no UTXOs — merchant hasn't set up receive addresses
+      return { merchant: { walletPublicKey, displayName: null, jurisdictionCountryCode: "" }, hasUtxos: false };
+    }
     if (!res.ok) return null;
     const body = await res.json();
-    return body?.data?.merchant ?? null;
+    const merchant = body?.data?.merchant;
+    if (!merchant) return null;
+    return { merchant, hasUtxos: true };
   } catch {
     return null;
   }
@@ -81,12 +87,18 @@ export async function posView(): Promise<HTMLElement> {
   }
 
   // Fetch merchant info
-  const merchant = await fetchMerchantInfo(params.merchantWallet);
-  if (!merchant) {
+  const result = await fetchMerchantInfo(params.merchantWallet);
+  if (!result) {
     container.innerHTML =
-      `<div class="pos-card"><h2>Merchant not found</h2><p>This payment link is invalid or the merchant has no receive addresses.</p></div>`;
+      `<div class="pos-card"><h2>Merchant not found</h2><p>This payment link is invalid.</p></div>`;
     return container;
   }
+  if (!result.hasUtxos) {
+    container.innerHTML =
+      `<div class="pos-card"><h2>Merchant not ready</h2><p>This merchant hasn't set up receive addresses yet. Ask them to sign in to Moonlight Pay first.</p></div>`;
+    return container;
+  }
+  const merchant = result.merchant;
 
   const merchantName = merchant.displayName ?? "Moonlight Pay Merchant";
   const amountDisplay = params.amount ? `${escapeHtml(params.amount)} XLM` : "";
