@@ -18,6 +18,7 @@
     "jsr:@std/path@^1.0.6": "1.1.4",
     "jsr:@std/toml@^1.0.11": "1.0.11",
     "npm:@creit.tech/stellar-wallets-kit@^1.4.0": "1.9.5_@stellar+stellar-sdk@14.6.1",
+    "npm:@stellar/freighter-api@3": "3.1.0",
     "npm:@stellar/stellar-sdk@14.2.0": "14.2.0",
     "npm:@stellar/stellar-sdk@^14.2.0": "14.6.1",
     "npm:@stellar/stellar-sdk@^14.6.1": "14.6.1",
@@ -122,7 +123,7 @@
         "@ngneat/elf-devtools",
         "@ngneat/elf-entities",
         "@ngneat/elf-persist-state",
-        "@stellar/freighter-api",
+        "@stellar/freighter-api@5.0.0",
         "@stellar/stellar-base@14.1.0",
         "@trezor/connect-plugin-stellar",
         "@trezor/connect-web",
@@ -1236,6 +1237,13 @@
         "@stablelib/keyagreement",
         "@stablelib/random",
         "@stablelib/wipe"
+      ]
+    },
+    "@stellar/freighter-api@3.1.0": {
+      "integrity": "sha512-hsoZwAR/jNVIt8ee6aHYcRKVk09hDLHmsfK2nUfqHUo7LuHtuHI59y/mDyrT4bp/qlklGZNd2nr0hRJyjau8WQ==",
+      "dependencies": [
+        "buffer",
+        "semver@7.7.3"
       ]
     },
     "@stellar/freighter-api@5.0.0": {
@@ -3449,6 +3457,7 @@
     "dependencies": [
       "jsr:@luca/esbuild-deno-loader@0.11",
       "jsr:@moonlight/moonlight-sdk@0.7",
+      "jsr:@noble/curves@^1.8.0",
       "jsr:@std/assert@~0.213.1",
       "jsr:@std/path@1",
       "npm:@creit.tech/stellar-wallets-kit@^1.4.0",
