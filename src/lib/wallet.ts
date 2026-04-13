@@ -8,7 +8,10 @@
  */
 import { StellarWalletsKit } from "@creit.tech/stellar-wallets-kit/stellar-wallets-kit.mjs";
 import { WalletNetwork } from "@creit.tech/stellar-wallets-kit/types.mjs";
-import { FreighterModule, FREIGHTER_ID } from "@creit.tech/stellar-wallets-kit/modules/freighter.module.mjs";
+import {
+  FREIGHTER_ID,
+  FreighterModule,
+} from "@creit.tech/stellar-wallets-kit/modules/freighter.module.mjs";
 import "@creit.tech/stellar-wallets-kit/components/modal/stellar-wallets-modal.mjs";
 import { getNetworkPassphrase, getStellarNetwork } from "./config.ts";
 import {

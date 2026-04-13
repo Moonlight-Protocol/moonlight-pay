@@ -135,7 +135,8 @@ async function deriveP256PublicKey(seed: Uint8Array): Promise<ArrayBuffer> {
   // multiplication avoids this browser-specific limitation entirely.
   const { p256 } = await import("@noble/curves/p256");
   const publicKey = p256.ProjectivePoint.fromPrivateKey(privateKeyBytes);
-  return publicKey.toRawBytes(false).buffer; // 65 bytes: 0x04 || x || y
+  const raw = publicKey.toRawBytes(false); // 65 bytes: 0x04 || x || y
+  return raw.buffer as ArrayBuffer;
 }
 
 /**
