@@ -8,8 +8,7 @@
  */
 import { StellarWalletsKit } from "@creit.tech/stellar-wallets-kit/stellar-wallets-kit.mjs";
 import { WalletNetwork } from "@creit.tech/stellar-wallets-kit/types.mjs";
-import { sep43Modules } from "@creit.tech/stellar-wallets-kit/utils.mjs";
-import { FREIGHTER_ID } from "@creit.tech/stellar-wallets-kit/modules/freighter.module.mjs";
+import { FreighterModule, FREIGHTER_ID } from "@creit.tech/stellar-wallets-kit/modules/freighter.module.mjs";
 import "@creit.tech/stellar-wallets-kit/components/modal/stellar-wallets-modal.mjs";
 import { getNetworkPassphrase, getStellarNetwork } from "./config.ts";
 import {
@@ -43,7 +42,7 @@ function getWalletNetwork(): WalletNetwork {
   }
 }
 
-function getKit(): StellarWalletsKit {
+export function getKit(): StellarWalletsKit {
   if (!kit) {
     // sep43Modules() returns only wallets that implement SEP-43 signMessage,
     // which moonlight-pay requires for both master-seed derivation and the
@@ -52,7 +51,7 @@ function getKit(): StellarWalletsKit {
     kit = new StellarWalletsKit({
       network: getWalletNetwork(),
       selectedWalletId: FREIGHTER_ID,
-      modules: sep43Modules(),
+      modules: [new FreighterModule()],
     });
   }
   return kit;

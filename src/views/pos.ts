@@ -19,6 +19,7 @@ import { executeSelfCustodialPayment } from "../lib/selfcustodial-payment.ts";
 import {
   connectWallet,
   getConnectedAddress,
+  getKit,
   signMessage,
 } from "../lib/wallet.ts";
 import { createWalletSigner } from "../lib/wallet-signer.ts";
@@ -190,15 +191,7 @@ export async function posView(): Promise<HTMLElement> {
           customerWallet = await connectWallet();
         }
 
-        // Get the wallets-kit instance for the Signer adapter
-        // deno-lint-ignore no-explicit-any
-        const kit = (globalThis as any).__moonlightWalletKit;
-        if (!kit) {
-          throw new Error(
-            "Wallet kit not initialized. Please refresh and try again.",
-          );
-        }
-        const signer = createWalletSigner(kit);
+        const signer = createWalletSigner(getKit());
 
         const result = await executeInstantPayment({
           customerWallet,
@@ -206,7 +199,6 @@ export async function posView(): Promise<HTMLElement> {
           amountXlm: amount.toString(),
           description: params.description ?? undefined,
           signer,
-          signMessage,
           payerJurisdiction: params.jurisdiction ?? undefined,
           onStatus: (msg) => {
             statusEl.textContent = msg;
@@ -269,14 +261,7 @@ export async function posView(): Promise<HTMLElement> {
               customerWallet = await connectWallet();
             }
 
-            // deno-lint-ignore no-explicit-any
-            const kit = (globalThis as any).__moonlightWalletKit;
-            if (!kit) {
-              throw new Error(
-                "Wallet kit not initialized. Please refresh and try again.",
-              );
-            }
-            const signer = createWalletSigner(kit);
+            const signer = createWalletSigner(getKit());
 
             const result = await executeSelfCustodialPayment({
               customerWallet,

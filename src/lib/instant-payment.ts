@@ -3,28 +3,28 @@
  *
  * Orchestrates the entire payment from customer to merchant:
  *   1. Prepare: call pay-platform to get council config + merchant UTXOs
- *   2. Auth: authenticate with the privacy provider (challenge-response)
- *   3. Build: construct the MLXDR bundle (DEPOSIT + temp CREATE + SPEND + merchant CREATE)
- *   4. Sign: customer signs DEPOSIT via Freighter, temp P256 keys sign SPEND
- *   5. Submit: send the complete bundle to pay-platform for forwarding to provider-platform
+ *   2. Build: construct the MLXDR bundle (DEPOSIT + temp CREATE + SPEND + merchant CREATE)
+ *   3. Sign: customer signs DEPOSIT via Freighter, temp P256 keys sign SPEND
+ *   4. Submit: send the bundle to pay-platform (pay-platform handles provider auth)
  *
  * The customer sees one wallet prompt (the deposit authorization).
- * Everything else is handled by this module + pay-platform.
+ * Pay-platform handles provider-platform authentication server-side.
  */
 import { MoonlightOperation } from "@moonlight/moonlight-sdk";
 import { getPayPlatformUrl } from "./config.ts";
 import { deriveP256KeyPairFromSeed } from "./utxo-derivation.ts";
 
-// The SDK uses branded string types from @colibri/core (Ed25519PublicKey = `G${string}`,
-// ContractId = `C${string}`). We cast runtime strings to these types at the call sites.
-
 interface PrepareResult {
   council: {
     id: string;
     channelAuthId: string;
-    privacyChannelId: string;
-    assetId: string;
     networkPassphrase: string;
+  };
+  channel: {
+    id: string;
+    assetCode: string;
+    assetContractId: string;
+    privacyChannelId: string;
   };
   pp: {
     url: string;
@@ -38,10 +38,6 @@ interface PrepareResult {
   amountStroops: string;
 }
 
-/**
- * Distribute an amount randomly across N parts (for privacy).
- * Each part gets at least 1 stroop.
- */
 function partitionAmount(total: bigint, parts: number): bigint[] {
   if (parts <= 0) return [];
   if (parts === 1) return [total];
@@ -49,9 +45,8 @@ function partitionAmount(total: bigint, parts: number): bigint[] {
   let remaining = total;
   for (let i = 0; i < parts - 1; i++) {
     const maxForThis = remaining - BigInt(parts - i - 1);
-    const portion = 1n + BigInt(
-      Math.floor(Math.random() * Number(maxForThis - 1n)),
-    );
+    const portion = 1n +
+      BigInt(Math.floor(Math.random() * Number(maxForThis - 1n)));
     result.push(portion);
     remaining -= portion;
   }
@@ -59,19 +54,14 @@ function partitionAmount(total: bigint, parts: number): bigint[] {
   return result;
 }
 
-/**
- * Execute the full instant payment flow.
- */
 export async function executeInstantPayment(opts: {
   customerWallet: string;
   merchantWallet: string;
   amountXlm: string;
+  assetCode?: string;
   description?: string;
-  /** Signer-compatible object for the customer's wallet (from createWalletSigner). */
   // deno-lint-ignore no-explicit-any
   signer: any;
-  /** signMessage for privacy provider auth */
-  signMessage: (message: string) => Promise<string>;
   payerJurisdiction?: string;
   onStatus?: (message: string) => void;
 }): Promise<{ transactionId: string; status: string }> {
@@ -79,9 +69,9 @@ export async function executeInstantPayment(opts: {
     customerWallet,
     merchantWallet,
     amountXlm,
+    assetCode,
     description,
     signer,
-    signMessage,
     payerJurisdiction,
     onStatus,
   } = opts;
@@ -96,6 +86,7 @@ export async function executeInstantPayment(opts: {
       merchantWallet,
       amountXlm,
       customerWallet,
+      assetCode,
       payerJurisdiction,
     }),
   });
@@ -110,23 +101,15 @@ export async function executeInstantPayment(opts: {
   };
 
   const amountStroops = BigInt(prepare.amountStroops);
-  const { council, pp, merchantUtxos } = prepare;
+  const { council, channel, merchantUtxos } = prepare;
 
-  // Step 2: Authenticate with the privacy provider
-  onStatus?.("Authenticating...");
-  const ppAuthToken = await authenticateWithPP(
-    pp.url,
-    customerWallet,
-    signMessage,
-  );
-
-  // Step 3: Get current ledger for expiration
+  // Step 2: Get current ledger for expiration
   // TODO: fetch from RPC or provider-platform. For now use a large offset.
   const expirationLedger = 999999999;
 
-  // Step 4: Generate temporary P256 keypairs for the hop
+  // Step 3: Generate temporary P256 keypairs for the hop
   onStatus?.("Building transaction...");
-  const tempCount = merchantUtxos.length; // same count as merchant UTXOs
+  const tempCount = merchantUtxos.length;
   const tempKeypairs: Array<{
     publicKey: Uint8Array;
     privateKey: Uint8Array;
@@ -138,11 +121,8 @@ export async function executeInstantPayment(opts: {
     tempKeypairs.push(kp);
   }
 
-  // Step 5: Build CREATE operations at merchant's receive UTXOs
-  const merchantAmounts = partitionAmount(
-    amountStroops,
-    merchantUtxos.length,
-  );
+  // Step 4: Build CREATE operations at merchant's receive UTXOs
+  const merchantAmounts = partitionAmount(amountStroops, merchantUtxos.length);
   const merchantCreateOps = merchantUtxos.map((u, i) =>
     MoonlightOperation.create(
       Uint8Array.from(atob(u.utxoPublicKey), (c) => c.charCodeAt(0)),
@@ -150,14 +130,13 @@ export async function executeInstantPayment(opts: {
     )
   );
 
-  // Step 6: Build CREATE operations at temporary keys
+  // Step 5: Build CREATE operations at temporary keys
   const tempAmounts = partitionAmount(amountStroops, tempCount);
   const tempCreateOps = tempKeypairs.map((kp, i) =>
     MoonlightOperation.create(kp.publicKey, tempAmounts[i])
   );
 
-  // Step 7: Build DEPOSIT operation (customer signs via Freighter)
-  // Conditions: the temporary CREATE operations
+  // Step 6: Build DEPOSIT operation (customer signs via Freighter)
   onStatus?.("Sign the deposit in your wallet...");
   const depositOp = await MoonlightOperation.deposit(
     customerWallet as `G${string}`,
@@ -167,13 +146,12 @@ export async function executeInstantPayment(opts: {
     .signWithEd25519(
       signer,
       expirationLedger,
-      council.privacyChannelId as `C${string}`,
-      council.assetId as `C${string}`,
+      channel.privacyChannelId as `C${string}`,
+      channel.assetContractId as `C${string}`,
       council.networkPassphrase,
     );
 
-  // Step 8: Build SPEND operations from temporary keys → merchant UTXOs
-  // Each SPEND is conditioned on ALL merchant CREATE operations
+  // Step 7: Build SPEND operations from temporary keys → merchant UTXOs
   const spendOps = [];
   for (let i = 0; i < tempKeypairs.length; i++) {
     const spendOp = MoonlightOperation.spend(tempKeypairs[i].publicKey);
@@ -203,13 +181,13 @@ export async function executeInstantPayment(opts: {
     };
     await spendOp.signWithUTXO(
       utxoKeypairAdapter,
-      council.privacyChannelId as `C${string}`,
+      channel.privacyChannelId as `C${string}`,
       expirationLedger,
     );
     spendOps.push(spendOp);
   }
 
-  // Step 9: Assemble all operations as MLXDR
+  // Step 8: Assemble all operations as MLXDR
   const operationsMLXDR = [
     depositOp.toMLXDR(),
     ...tempCreateOps.map((op) => op.toMLXDR()),
@@ -217,7 +195,7 @@ export async function executeInstantPayment(opts: {
     ...merchantCreateOps.map((op) => op.toMLXDR()),
   ];
 
-  // Step 10: Submit to pay-platform
+  // Step 9: Submit to pay-platform (pay-platform handles provider auth)
   onStatus?.("Submitting payment...");
   const submitRes = await fetch(`${baseUrl}/api/v1/pay/instant/submit`, {
     method: "POST",
@@ -226,12 +204,10 @@ export async function executeInstantPayment(opts: {
       customerWallet,
       merchantWallet,
       amountStroops: amountStroops.toString(),
+      assetCode: channel.assetCode,
       description: description ?? null,
       operationsMLXDR,
       merchantUtxoIds: merchantUtxos.map((u) => u.id),
-      ppUrl: pp.url,
-      ppAuthToken,
-      channelContractId: council.privacyChannelId,
     }),
   });
 
@@ -249,80 +225,12 @@ export async function executeInstantPayment(opts: {
   };
 }
 
-/**
- * Authenticate with a privacy provider using challenge-response.
- */
-async function authenticateWithPP(
-  ppUrl: string,
-  customerWallet: string,
-  signFn: (message: string) => Promise<string>,
-): Promise<string> {
-  const challengeRes = await fetch(`${ppUrl}/api/v1/auth/challenge`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ publicKey: customerWallet }),
-  });
-  if (!challengeRes.ok) {
-    throw new Error("Failed to get auth challenge from privacy provider");
-  }
-  const challengeBody = await challengeRes.json();
-  const nonce = challengeBody?.data?.nonce;
-  if (!nonce) throw new Error("Privacy provider returned no nonce");
-
-  const signature = await signFn(nonce);
-
-  const verifyRes = await fetch(`${ppUrl}/api/v1/auth/verify`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ publicKey: customerWallet, nonce, signature }),
-  });
-  if (!verifyRes.ok) {
-    throw new Error("Privacy provider authentication failed");
-  }
-  const verifyBody = await verifyRes.json();
-  const token = verifyBody?.data?.token;
-  if (!token) throw new Error("Privacy provider returned no token");
-  return token;
-}
-
 /** Build a minimal PKCS#8 wrapper for a P-256 private key. */
 function buildPkcs8P256(rawPrivateKey: Uint8Array): ArrayBuffer {
   const header = new Uint8Array([
-    0x30,
-    0x41,
-    0x02,
-    0x01,
-    0x00,
-    0x30,
-    0x13,
-    0x06,
-    0x07,
-    0x2a,
-    0x86,
-    0x48,
-    0xce,
-    0x3d,
-    0x02,
-    0x01,
-    0x06,
-    0x08,
-    0x2a,
-    0x86,
-    0x48,
-    0xce,
-    0x3d,
-    0x03,
-    0x01,
-    0x07,
-    0x04,
-    0x27,
-    0x30,
-    0x25,
-    0x02,
-    0x01,
-    0x01,
-    0x04,
-    0x20,
+    0x30, 0x41, 0x02, 0x01, 0x00, 0x30, 0x13, 0x06, 0x07, 0x2a, 0x86, 0x48,
+    0xce, 0x3d, 0x02, 0x01, 0x06, 0x08, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x03,
+    0x01, 0x07, 0x04, 0x27, 0x30, 0x25, 0x02, 0x01, 0x01, 0x04, 0x20,
   ]);
   const result = new Uint8Array(header.length + 32);
   result.set(header);
@@ -330,5 +238,4 @@ function buildPkcs8P256(rawPrivateKey: Uint8Array): ArrayBuffer {
   return result.buffer as ArrayBuffer;
 }
 
-// Re-export deriveP256KeyPairFromSeed for the temp key generation
 export { deriveP256KeyPairFromSeed };

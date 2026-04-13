@@ -127,56 +127,17 @@ async function deriveP256PublicKey(seed: Uint8Array): Promise<ArrayBuffer> {
   // expanded output, reduced mod n by the runtime).
   const privateKeyBytes = new Uint8Array(expanded).slice(0, 32);
 
-  try {
-    const keyPair = await crypto.subtle.importKey(
-      "pkcs8",
-      buildPkcs8P256(privateKeyBytes).buffer as ArrayBuffer,
-      { name: "ECDSA", namedCurve: "P-256" },
-      true,
-      ["sign"],
-    );
-    // JWK export includes both private (d) and public (x, y) components.
-    const jwk = await crypto.subtle.exportKey("jwk", keyPair);
-    // Reconstruct the uncompressed public key from x and y
-    const x = base64UrlToBytes(jwk.x!);
-    const y = base64UrlToBytes(jwk.y!);
-    const uncompressed = new Uint8Array(65);
-    uncompressed[0] = 0x04;
-    uncompressed.set(x, 1);
-    uncompressed.set(y, 33);
-    return uncompressed.buffer;
-  } catch {
-    // If PKCS8 import fails (e.g., the private key bytes are out of range),
-    // fall back to a hash-retry approach
-    throw new Error(
-      `Failed to derive P-256 key at seed. This should not happen with HKDF-expanded input.`,
-    );
-  }
+  // Derive the public point from the private scalar using @noble/curves.
+  // Firefox's WebCrypto cannot exportKey("jwk") on EC keys imported via
+  // PKCS8 when the DER omits the optional public key component — the
+  // importKey succeeds but exportKey throws "The operation failed for an
+  // operation-specific reason". Using noble/curves for EC point
+  // multiplication avoids this browser-specific limitation entirely.
+  const { p256 } = await import("@noble/curves/p256");
+  const publicKey = p256.ProjectivePoint.fromPrivateKey(privateKeyBytes);
+  return publicKey.toRawBytes(false).buffer; // 65 bytes: 0x04 || x || y
 }
 
-/** Decode base64url (no padding) to Uint8Array. */
-function base64UrlToBytes(b64url: string): Uint8Array {
-  const b64 = b64url.replace(/-/g, "+").replace(/_/g, "/");
-  const pad = (4 - (b64.length % 4)) % 4;
-  const padded = b64 + "=".repeat(pad);
-  const binary = atob(padded);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return bytes;
-}
-
-/**
- * Build a minimal PKCS#8 wrapper for a P-256 private key.
- * This is the DER encoding of:
- *   PrivateKeyInfo ::= SEQUENCE {
- *     version INTEGER (0),
- *     privateKeyAlgorithm SEQUENCE { OID ecPublicKey, OID prime256v1 },
- *     privateKey OCTET STRING { ECPrivateKey ::= SEQUENCE {
- *       version INTEGER (1),
- *       privateKey OCTET STRING (32 bytes)
- *     }}
- *   }
- */
 /**
  * Derive a full P-256 keypair (public + private) from a 32-byte seed.
  * Used by the instant payment flow to generate temporary hop keys.
@@ -206,65 +167,9 @@ export async function deriveP256KeyPairFromSeed(
   );
   const privateKeyBytes = new Uint8Array(expanded).slice(0, 32);
 
-  const cryptoKey = await crypto.subtle.importKey(
-    "pkcs8",
-    buildPkcs8P256(privateKeyBytes).buffer as ArrayBuffer,
-    { name: "ECDSA", namedCurve: "P-256" },
-    true,
-    ["sign"],
-  );
-  const jwk = await crypto.subtle.exportKey("jwk", cryptoKey);
-  const x = base64UrlToBytes(jwk.x!);
-  const y = base64UrlToBytes(jwk.y!);
-  const publicKey = new Uint8Array(65);
-  publicKey[0] = 0x04;
-  publicKey.set(x, 1);
-  publicKey.set(y, 33);
+  const { p256 } = await import("@noble/curves/p256");
+  const publicKey = p256.ProjectivePoint.fromPrivateKey(privateKeyBytes)
+    .toRawBytes(false); // 65 bytes: 0x04 || x || y
 
-  return { publicKey, privateKey: privateKeyBytes };
-}
-
-function buildPkcs8P256(rawPrivateKey: Uint8Array): Uint8Array {
-  // DER-encoded PKCS#8 header for P-256 (fixed bytes)
-  const header = new Uint8Array([
-    0x30,
-    0x41, // SEQUENCE (65 bytes total)
-    0x02,
-    0x01,
-    0x00, // INTEGER version = 0
-    0x30,
-    0x13, // SEQUENCE (19 bytes)
-    0x06,
-    0x07,
-    0x2a,
-    0x86,
-    0x48,
-    0xce,
-    0x3d,
-    0x02,
-    0x01, // OID ecPublicKey
-    0x06,
-    0x08,
-    0x2a,
-    0x86,
-    0x48,
-    0xce,
-    0x3d,
-    0x03,
-    0x01,
-    0x07, // OID prime256v1
-    0x04,
-    0x27, // OCTET STRING (39 bytes)
-    0x30,
-    0x25, // SEQUENCE (37 bytes)
-    0x02,
-    0x01,
-    0x01, // INTEGER version = 1
-    0x04,
-    0x20, // OCTET STRING (32 bytes) — the private key
-  ]);
-  const result = new Uint8Array(header.length + 32);
-  result.set(header);
-  result.set(rawPrivateKey, header.length);
-  return result;
+  return { publicKey: new Uint8Array(publicKey), privateKey: privateKeyBytes };
 }

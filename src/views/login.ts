@@ -239,7 +239,12 @@ function renderSignupForm(container: HTMLElement): HTMLElement {
       // Uses the master seed (still in memory from the sign-in flow) + email
       // to derive 100 P256 receive addresses.
       statusEl.textContent = "Generating receive addresses...";
-      const seed = getMasterSeed();
+      let seed: Uint8Array;
+      try {
+        seed = getMasterSeed();
+      } catch {
+        throw new Error("Master key was lost. Please sign in again.");
+      }
       const utxos = await deriveReceiveUtxos(seed, email);
       await storeReceiveUtxos(utxos);
 
