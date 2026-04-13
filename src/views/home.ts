@@ -4,7 +4,9 @@
  */
 import { page } from "../components/page.ts";
 import {
+  getBalance,
   getMe,
+  listTransactions,
   type PayAccount,
   SessionExpiredError,
   updateMe,
@@ -112,7 +114,84 @@ async function renderContent(): Promise<HTMLElement> {
   }</div>
       </div>
     </div>
+
+    <div id="balance-section" style="margin-top:1.5rem;max-width:600px">
+      <h3>Balance</h3>
+      <p id="balance-display" class="hint-text">Loading...</p>
+    </div>
+
+    <div id="pos-link-section" style="margin-top:1rem;max-width:600px">
+      <h3>Your POS Link</h3>
+      <p style="font-size:0.85rem;color:var(--text-muted)">Share this link to receive payments:</p>
+      <code id="pos-link" style="display:block;padding:0.5rem;background:var(--surface);border:1px solid var(--border);border-radius:4px;font-size:0.8rem;word-break:break-all"></code>
+    </div>
+
+    <div id="tx-section" style="margin-top:1.5rem;max-width:600px">
+      <h3>Recent Transactions</h3>
+      <div id="tx-list" class="hint-text">Loading...</div>
+    </div>
   `;
+
+  // POS link
+  const posLinkEl = el.querySelector("#pos-link")!;
+  const baseUrl = globalThis.location.origin;
+  posLinkEl.textContent = `${baseUrl}/#/pay/${account.walletPublicKey}`;
+
+  // Load balance
+  getBalance()
+    .then((b) => {
+      const balanceEl = el.querySelector("#balance-display")!;
+      balanceEl.textContent = `${b.balanceXlm} XLM`;
+    })
+    .catch(() => {
+      const balanceEl = el.querySelector("#balance-display")!;
+      balanceEl.textContent = "Could not load balance";
+    });
+
+  // Load recent transactions
+  listTransactions({ limit: 10 })
+    .then((txs) => {
+      const txListEl = el.querySelector("#tx-list")!;
+      if (txs.length === 0) {
+        txListEl.textContent = "No transactions yet";
+        return;
+      }
+      txListEl.innerHTML = "";
+      for (const tx of txs) {
+        const row = document.createElement("div");
+        row.style.cssText =
+          "display:flex;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid var(--border);font-size:0.85rem";
+        const sign = tx.direction === "IN" ? "+" : "-";
+        const color = tx.direction === "IN"
+          ? "var(--success, green)"
+          : "var(--inactive, red)";
+        row.innerHTML = `
+        <div>
+          <span style="color:${color};font-weight:600">${sign}${
+          escapeHtml(tx.amountXlm)
+        } XLM</span>
+          <span style="color:var(--text-muted);margin-left:0.5rem">${
+          escapeHtml(tx.method)
+        }</span>
+          ${
+          tx.description
+            ? `<span style="color:var(--text-muted);margin-left:0.5rem">${
+              escapeHtml(tx.description)
+            }</span>`
+            : ""
+        }
+        </div>
+        <div style="color:var(--text-muted)">${
+          escapeHtml(formatDate(tx.createdAt))
+        }</div>
+      `;
+        txListEl.appendChild(row);
+      }
+    })
+    .catch(() => {
+      const txListEl = el.querySelector("#tx-list")!;
+      txListEl.textContent = "Could not load transactions";
+    });
 
   // Copy address — clipboard API can fail (insecure context, permissions,
   // browser policy). Surface failure to the user instead of silently no-oping.

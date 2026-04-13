@@ -26,57 +26,13 @@ import {
   getMe,
   isPlatformAuthed,
   SessionExpiredError,
+  storeReceiveUtxos,
 } from "../lib/api.ts";
+import { deriveReceiveUtxos } from "../lib/utxo-derivation.ts";
+import { getMasterSeed } from "../lib/wallet.ts";
 import { navigate } from "../lib/router.ts";
 import { COUNTRY_CODES } from "../lib/jurisdictions.ts";
 import { escapeHtml, friendlyError, truncateAddress } from "../lib/dom.ts";
-
-/**
- * Conservative retry list for wallet calls. We only retry on errors whose
- * message *clearly* indicates a transient condition — never on unknown or
- * cancellation errors. The earlier "retry on anything that doesn't look
- * like a cancel" approach was too aggressive: any unknown wording would
- * pop the wallet UI 3 times before failing.
- */
-const RETRYABLE_PATTERNS = [
-  /\btimeout\b/i,
-  /\btimed out\b/i,
-  /\bnetwork\b/i,
-  /\bbusy\b/i,
-  /\btoo many requests\b/i,
-  /\bnot ready\b/i,
-];
-
-function isRetryable(err: unknown): boolean {
-  const msg = err instanceof Error ? err.message : String(err);
-  return RETRYABLE_PATTERNS.some((re) => re.test(msg));
-}
-
-/**
- * Retry a wallet call only on known transient conditions (network blip,
- * "wallet busy", timeout). Any other error — including user rejection —
- * propagates immediately so we don't pop a wallet prompt three times for
- * a permanent failure.
- */
-async function withWalletRetry<T>(
-  fn: () => Promise<T>,
-  attempts = 3,
-  baseDelayMs = 400,
-): Promise<T> {
-  let lastErr: unknown;
-  for (let i = 0; i < attempts; i++) {
-    try {
-      return await fn();
-    } catch (err) {
-      lastErr = err;
-      if (!isRetryable(err) || i === attempts - 1) {
-        throw err;
-      }
-      await new Promise((r) => setTimeout(r, baseDelayMs * (i + 1)));
-    }
-  }
-  throw lastErr;
-}
 
 export async function loginView(): Promise<HTMLElement> {
   const container = document.createElement("div");
@@ -121,7 +77,6 @@ function renderConnectStep(
 
       <button id="connect-btn" class="btn-primary btn-wide">Connect Wallet</button>
 
-      <p id="connect-status" class="hint-text" hidden></p>
       <p id="connect-error" class="error-text" hidden></p>
     </div>
   `;
@@ -129,9 +84,6 @@ function renderConnectStep(
   const connectBtn = container.querySelector(
     "#connect-btn",
   ) as HTMLButtonElement;
-  const statusEl = container.querySelector(
-    "#connect-status",
-  ) as HTMLParagraphElement;
   const errorEl = container.querySelector(
     "#connect-error",
   ) as HTMLParagraphElement;
@@ -142,32 +94,31 @@ function renderConnectStep(
   }
 
   connectBtn.addEventListener("click", async () => {
+    const originalText = connectBtn.textContent;
     connectBtn.disabled = true;
     errorEl.hidden = true;
-    statusEl.hidden = false;
 
     try {
       // Step 1: connect
-      statusEl.textContent = "Connecting to wallet...";
+      connectBtn.textContent = "Connecting...";
       await connectWallet();
 
-      // Step 2: derive master seed (single signature). Wrapped in
-      // withWalletRetry because Freighter occasionally fails the first
-      // signMessage right after the connect handshake.
-      statusEl.textContent = "Deriving master key...";
-      await withWalletRetry(() => initMasterSeed());
+      // Step 2: derive master seed (single signature).
+      connectBtn.textContent = "Setting up...";
+      await initMasterSeed();
+
+      // Freighter rejects consecutive signMessage calls without a delay
+      // between them. initMasterSeed signs once, authenticate signs again.
+      await new Promise((r) => setTimeout(r, 1000));
 
       // Step 3: authenticate with pay-platform (challenge-response).
-      // Same retry: two consecutive signMessage calls can race the wallet.
-      statusEl.textContent = "Signing in to Moonlight Pay...";
+      connectBtn.textContent = "Authenticating...";
       const publicKey = getConnectedAddress();
       if (!publicKey) throw new Error("Wallet not connected");
-      await withWalletRetry(() =>
-        authenticate({ publicKey, sign: signMessage })
-      );
+      await authenticate({ publicKey, sign: signMessage });
 
       // Step 4: check for existing account
-      statusEl.textContent = "Loading account...";
+      connectBtn.textContent = "Loading...";
       const account = await getMe();
       if (account) {
         navigate("/");
@@ -177,8 +128,8 @@ function renderConnectStep(
       // No account yet — render signup form
       renderSignupForm(container);
     } catch (err) {
+      connectBtn.textContent = originalText;
       connectBtn.disabled = false;
-      statusEl.hidden = true;
       errorEl.hidden = false;
       errorEl.textContent = friendlyError(err);
       // If we got partway through, clear so the user can retry cleanly
@@ -283,6 +234,15 @@ function renderSignupForm(container: HTMLElement): HTMLElement {
         jurisdictionCountryCode,
         displayName: displayName || undefined,
       });
+
+      // Generate and store receive UTXOs — the "Setting up your account" step.
+      // Uses the master seed (still in memory from the sign-in flow) + email
+      // to derive 100 P256 receive addresses.
+      statusEl.textContent = "Generating receive addresses...";
+      const seed = getMasterSeed();
+      const utxos = await deriveReceiveUtxos(seed, email);
+      await storeReceiveUtxos(utxos);
+
       navigate("/");
     } catch (err) {
       signupBtn.disabled = false;
