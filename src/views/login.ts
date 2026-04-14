@@ -33,6 +33,7 @@ import { getMasterSeed } from "../lib/wallet.ts";
 import { navigate } from "../lib/router.ts";
 import { COUNTRY_CODES } from "../lib/jurisdictions.ts";
 import { escapeHtml, friendlyError, truncateAddress } from "../lib/dom.ts";
+import { getPayPlatformUrl, isAllowed } from "../lib/config.ts";
 
 export async function loginView(): Promise<HTMLElement> {
   const container = document.createElement("div");
@@ -40,6 +41,11 @@ export async function loginView(): Promise<HTMLElement> {
 
   // If everything is ready, see if there's already an account.
   if (isAuthenticated() && isMasterSeedReady() && isPlatformAuthed()) {
+    const addr = getConnectedAddress();
+    if (addr && !isAllowed(addr)) {
+      // Already authed but not allowed — show invite screen
+      return renderInviteOnly(container, addr);
+    }
     try {
       const account = await getMe();
       if (account) {
@@ -116,6 +122,11 @@ function renderConnectStep(
       const publicKey = getConnectedAddress();
       if (!publicKey) throw new Error("Wallet not connected");
       await authenticate({ publicKey, sign: signMessage });
+
+      if (publicKey && !isAllowed(publicKey)) {
+        renderInviteOnly(container, publicKey);
+        return;
+      }
 
       // Step 4: check for existing account
       connectBtn.textContent = "Loading...";
@@ -255,6 +266,95 @@ function renderSignupForm(container: HTMLElement): HTMLElement {
       errorEl.hidden = false;
       errorEl.textContent = friendlyError(err);
     }
+  });
+
+  return container;
+}
+
+function renderInviteOnly(container: HTMLElement, address: string): HTMLElement {
+  container.innerHTML = `
+    <div class="login-card" style="text-align:center">
+      <img src="/moonlight.png" alt="Moonlight" style="width:80px;margin-bottom:1rem" />
+      <h2>Invite Only</h2>
+      <p style="color:var(--text-muted);font-size:0.875rem;margin-bottom:0.5rem">
+        This app is currently invite-only.
+      </p>
+      <p style="color:var(--text-muted);font-size:0.8rem;margin-bottom:1.5rem">
+        ${escapeHtml(truncateAddress(address))}
+      </p>
+
+      <div class="form-group">
+        <input type="email" id="waitlist-email" placeholder="your@email.com" autocomplete="email" />
+      </div>
+
+      <button id="waitlist-btn" class="btn-primary btn-wide">Join Waitlist</button>
+
+      <p id="waitlist-status" class="hint-text" hidden></p>
+      <p id="waitlist-error" class="error-text" hidden></p>
+
+      <p style="margin-top:1.5rem">
+        <a href="#" id="waitlist-disconnect" style="color:var(--text-muted);font-size:0.8rem">Disconnect</a>
+      </p>
+    </div>
+  `;
+
+  const emailInput = container.querySelector(
+    "#waitlist-email",
+  ) as HTMLInputElement;
+  const btn = container.querySelector("#waitlist-btn") as HTMLButtonElement;
+  const statusEl = container.querySelector(
+    "#waitlist-status",
+  ) as HTMLParagraphElement;
+  const errorEl = container.querySelector(
+    "#waitlist-error",
+  ) as HTMLParagraphElement;
+  const disconnectLink = container.querySelector(
+    "#waitlist-disconnect",
+  ) as HTMLAnchorElement;
+
+  btn.addEventListener("click", async () => {
+    errorEl.hidden = true;
+    statusEl.hidden = true;
+
+    const email = emailInput.value.trim();
+    if (!email) {
+      errorEl.hidden = false;
+      errorEl.textContent = "Please enter your email.";
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "Submitting...";
+
+    try {
+      const res = await fetch(
+        `${getPayPlatformUrl()}/api/v1/waitlist`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, walletPublicKey: address }),
+        },
+      );
+      if (!res.ok) {
+        throw new Error(`Server responded with ${res.status}`);
+      }
+      statusEl.hidden = false;
+      statusEl.textContent = "You're on the list!";
+      btn.textContent = "Join Waitlist";
+      btn.disabled = true;
+    } catch (err) {
+      btn.textContent = "Join Waitlist";
+      btn.disabled = false;
+      errorEl.hidden = false;
+      errorEl.textContent = friendlyError(err);
+    }
+  });
+
+  disconnectLink.addEventListener("click", (e) => {
+    e.preventDefault();
+    clearSession();
+    clearPlatformAuth();
+    navigate("/login", { force: true });
   });
 
   return container;

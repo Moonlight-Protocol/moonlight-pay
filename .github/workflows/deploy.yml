@@ -42,7 +42,8 @@ jobs:
           window.__PAY_CONFIG__ = {
             environment: "production",
             stellarNetwork: "${{ secrets.STELLAR_NETWORK }}",
-            payPlatformUrl: "${{ secrets.PAY_PLATFORM_URL }}"
+            payPlatformUrl: "${{ secrets.PAY_PLATFORM_URL }}",
+            allowlist: ${{ secrets.ALLOWLIST }},
           };
           EOF
 

@@ -16,6 +16,7 @@ export interface PayConfig {
   environment?: string;
   stellarNetwork?: StellarNetwork;
   payPlatformUrl?: string;
+  allowlist?: string[];
 }
 
 export type StellarNetwork = "testnet" | "mainnet" | "standalone";
@@ -83,4 +84,10 @@ export function getNetworkPassphrase(): string {
     default:
       return "Test SDF Network ; September 2015";
   }
+}
+
+export function isAllowed(address: string): boolean {
+  const cfg = readWindowConfig();
+  const list = cfg?.allowlist ?? [];
+  return list.includes("*") || list.includes(address);
 }
