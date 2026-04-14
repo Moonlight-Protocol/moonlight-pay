@@ -37,12 +37,15 @@ jobs:
           deno-version: ${{ env.DENO_VERSION }}
 
       - name: Generate production config
+        env:
+          ALLOWLIST: ${{ secrets.ALLOWLIST || '["*"]' }}
         run: |
           cat > public/config.js << EOF
           window.__PAY_CONFIG__ = {
             environment: "production",
             stellarNetwork: "${{ secrets.STELLAR_NETWORK }}",
-            payPlatformUrl: "${{ secrets.PAY_PLATFORM_URL }}"
+            payPlatformUrl: "${{ secrets.PAY_PLATFORM_URL }}",
+            allowlist: $ALLOWLIST,
           };
           EOF
 
