@@ -271,7 +271,10 @@ function renderSignupForm(container: HTMLElement): HTMLElement {
   return container;
 }
 
-function renderInviteOnly(container: HTMLElement, address: string): HTMLElement {
+function renderInviteOnly(
+  container: HTMLElement,
+  address: string,
+): HTMLElement {
   container.innerHTML = `
     <div class="login-card" style="text-align:center">
       <img src="/moonlight.png" alt="Moonlight" style="width:80px;margin-bottom:1rem" />
