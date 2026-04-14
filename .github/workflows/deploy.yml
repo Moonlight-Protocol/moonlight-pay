@@ -52,13 +52,52 @@ jobs:
       - name: Build production bundle
         run: deno task build -- --production
 
-      - name: Deploy to Tigris
+      - name: Deploy to Tigris (testnet)
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.TIGRIS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.TIGRIS_SECRET_ACCESS_KEY }}
           AWS_REGION: auto
         run: |
           aws s3 sync public/ s3://moonlight-pay-app/ \
+            --endpoint-url https://fly.storage.tigris.dev \
+            --acl public-read \
+            --delete \
+            --no-progress
+
+  deploy-mainnet:
+    needs: verify
+    runs-on: ubuntu-latest
+    environment: mainnet
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: ${{ env.DENO_VERSION }}
+
+      - name: Generate mainnet config
+        env:
+          ALLOWLIST: ${{ secrets.MAINNET_ALLOWLIST || '["*"]' }}
+        run: |
+          cat > public/config.js << EOF
+          window.__PAY_CONFIG__ = {
+            environment: "production",
+            stellarNetwork: "mainnet",
+            payPlatformUrl: "${{ secrets.MAINNET_PAY_PLATFORM_URL }}",
+            allowlist: $ALLOWLIST,
+          };
+          EOF
+
+      - name: Build production bundle
+        run: deno task build -- --production
+
+      - name: Deploy to Tigris (mainnet)
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.MAINNET_TIGRIS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.MAINNET_TIGRIS_SECRET_ACCESS_KEY }}
+          AWS_REGION: auto
+        run: |
+          aws s3 sync public/ s3://mainnet-moonlight-pay/ \
             --endpoint-url https://fly.storage.tigris.dev \
             --acl public-read \
             --delete \
