@@ -281,8 +281,6 @@ function renderSignupForm(container: HTMLElement): HTMLElement {
 }
 
 function renderOpexSetup(container: HTMLElement): HTMLElement {
-  const address = getConnectedAddress() ?? "";
-
   container.innerHTML = `
     <div class="login-card">
       <h2>Set Up Treasury</h2>
@@ -335,14 +333,23 @@ function renderOpexSetup(container: HTMLElement): HTMLElement {
     </div>
   `;
 
-  const deriveSection = container.querySelector("#opex-derive") as HTMLDivElement;
+  const deriveSection = container.querySelector(
+    "#opex-derive",
+  ) as HTMLDivElement;
   const infoSection = container.querySelector("#opex-info") as HTMLDivElement;
-  const addressInput = container.querySelector("#opex-address") as HTMLInputElement;
+  const addressInput = container.querySelector(
+    "#opex-address",
+  ) as HTMLInputElement;
   const balanceEl = container.querySelector("#opex-balance") as HTMLSpanElement;
-  const fundSection = container.querySelector("#opex-fund-section") as HTMLDivElement;
-  const completeBtn = container.querySelector("#opex-complete-btn") as HTMLButtonElement;
-  const statusEl = container.querySelector("#opex-status") as HTMLParagraphElement;
-  const errorEl = container.querySelector("#opex-error") as HTMLParagraphElement;
+  const fundSection = container.querySelector(
+    "#opex-fund-section",
+  ) as HTMLDivElement;
+  const completeBtn = container.querySelector(
+    "#opex-complete-btn",
+  ) as HTMLButtonElement;
+  const errorEl = container.querySelector(
+    "#opex-error",
+  ) as HTMLParagraphElement;
 
   let opexPublicKey = "";
   let opexSecretKey = "";
@@ -365,68 +372,87 @@ function renderOpexSetup(container: HTMLElement): HTMLElement {
   }
 
   // Derive
-  container.querySelector("#opex-derive-btn")?.addEventListener("click", async () => {
-    const btn = container.querySelector("#opex-derive-btn") as HTMLButtonElement;
-    btn.disabled = true;
-    btn.textContent = "Deriving...";
-    errorEl.hidden = true;
+  container.querySelector("#opex-derive-btn")?.addEventListener(
+    "click",
+    async () => {
+      const btn = container.querySelector(
+        "#opex-derive-btn",
+      ) as HTMLButtonElement;
+      btn.disabled = true;
+      btn.textContent = "Deriving...";
+      errorEl.hidden = true;
 
-    try {
-      const kp = await deriveOpExKeypair();
-      opexPublicKey = kp.publicKey;
-      opexSecretKey = kp.secretKey;
+      try {
+        const kp = await deriveOpExKeypair();
+        opexPublicKey = kp.publicKey;
+        opexSecretKey = kp.secretKey;
 
-      deriveSection.hidden = true;
-      infoSection.hidden = false;
-      addressInput.value = opexPublicKey;
-      await checkBalance();
-    } catch (err) {
-      btn.textContent = "Create Treasury Account";
-      btn.disabled = false;
-      errorEl.hidden = false;
-      errorEl.textContent = friendlyError(err);
-    }
-  });
+        deriveSection.hidden = true;
+        infoSection.hidden = false;
+        addressInput.value = opexPublicKey;
+        await checkBalance();
+      } catch (err) {
+        btn.textContent = "Create Treasury Account";
+        btn.disabled = false;
+        errorEl.hidden = false;
+        errorEl.textContent = friendlyError(err);
+      }
+    },
+  );
 
   // Refresh balance
-  container.querySelector("#opex-refresh-btn")?.addEventListener("click", () => checkBalance());
+  container.querySelector("#opex-refresh-btn")?.addEventListener(
+    "click",
+    () => checkBalance(),
+  );
 
   // Fund
-  container.querySelector("#opex-fund-btn")?.addEventListener("click", async () => {
-    const fundBtn = container.querySelector("#opex-fund-btn") as HTMLButtonElement;
-    const amountInput = container.querySelector("#opex-fund-amount") as HTMLInputElement;
-    const amount = amountInput.value.trim();
+  container.querySelector("#opex-fund-btn")?.addEventListener(
+    "click",
+    async () => {
+      const fundBtn = container.querySelector(
+        "#opex-fund-btn",
+      ) as HTMLButtonElement;
+      const amountInput = container.querySelector(
+        "#opex-fund-amount",
+      ) as HTMLInputElement;
+      const amount = amountInput.value.trim();
 
-    if (!amount || parseFloat(amount) <= 0) {
-      errorEl.textContent = "Enter a valid amount";
-      errorEl.hidden = false;
-      return;
-    }
+      if (!amount || parseFloat(amount) <= 0) {
+        errorEl.textContent = "Enter a valid amount";
+        errorEl.hidden = false;
+        return;
+      }
 
-    fundBtn.disabled = true;
-    fundBtn.textContent = "Building...";
-    errorEl.hidden = true;
+      fundBtn.disabled = true;
+      fundBtn.textContent = "Building...";
+      errorEl.hidden = true;
 
-    try {
-      const sourceAddress = getConnectedAddress();
-      if (!sourceAddress) throw new Error("Wallet not connected");
+      try {
+        const sourceAddress = getConnectedAddress();
+        if (!sourceAddress) throw new Error("Wallet not connected");
 
-      const txXdr = await buildFundOpexTx(sourceAddress, opexPublicKey, amount);
-      fundBtn.textContent = "Sign in wallet...";
-      const signer = createWalletSigner();
-      const { signedTxXdr } = await signer.signTransaction(txXdr);
-      fundBtn.textContent = "Submitting...";
-      await submitHorizonTx(signedTxXdr);
+        const txXdr = await buildFundOpexTx(
+          sourceAddress,
+          opexPublicKey,
+          amount,
+        );
+        fundBtn.textContent = "Sign in wallet...";
+        const signer = createWalletSigner();
+        const { signedTxXdr } = await signer.signTransaction(txXdr);
+        fundBtn.textContent = "Submitting...";
+        await submitHorizonTx(signedTxXdr);
 
-      fundBtn.textContent = "Funded!";
-      await checkBalance();
-    } catch (err) {
-      fundBtn.textContent = "Fund";
-      fundBtn.disabled = false;
-      errorEl.hidden = false;
-      errorEl.textContent = friendlyError(err);
-    }
-  });
+        fundBtn.textContent = "Funded!";
+        await checkBalance();
+      } catch (err) {
+        fundBtn.textContent = "Fund";
+        fundBtn.disabled = false;
+        errorEl.hidden = false;
+        errorEl.textContent = friendlyError(err);
+      }
+    },
+  );
 
   // Complete — register OpEx with pay-platform
   completeBtn.addEventListener("click", async () => {

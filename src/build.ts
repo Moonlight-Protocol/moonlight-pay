@@ -95,7 +95,6 @@ await esbuild.build({
 
 // ─── Post-build patches ────────────────────────────────────────
 let appJs = await Deno.readTextFile(OUTFILE);
-const before = appJs;
 
 // 1. Patch __require: intercept require("buffer") before it throws.
 // With nodeModulesDir, esbuild resolves CJS require("buffer") from

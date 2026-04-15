@@ -7,7 +7,11 @@
  *
  * Follows the same pattern as council-console/src/lib/stellar.ts.
  */
-import { getNetworkPassphrase, getRpcUrl, getStellarNetwork } from "./config.ts";
+import {
+  getNetworkPassphrase,
+  getRpcUrl,
+  getStellarNetwork,
+} from "./config.ts";
 
 // ─── Lazy-loaded SDK types ─────────────────────────────────────
 // Keep everything behind dynamic import so the module can be imported
@@ -224,14 +228,14 @@ export async function buildFundOpexTx(
   const { TransactionBuilder, Operation, Asset } = stellar as any;
   const op = funded
     ? Operation.payment({
-        destination: destinationPublicKey,
-        asset: Asset.native(),
-        amount: amountXlm,
-      })
+      destination: destinationPublicKey,
+      asset: Asset.native(),
+      amount: amountXlm,
+    })
     : Operation.createAccount({
-        destination: destinationPublicKey,
-        startingBalance: amountXlm,
-      });
+      destination: destinationPublicKey,
+      startingBalance: amountXlm,
+    });
 
   const tx = new TransactionBuilder(account, {
     fee: "100000",

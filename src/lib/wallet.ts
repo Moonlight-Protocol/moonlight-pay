@@ -96,7 +96,9 @@ export async function signMessage(message: string): Promise<string> {
  * This is a known limitation of JS string immutability — there is no way to
  * clear it after use. Callers should avoid persisting it unnecessarily.
  */
-export async function deriveOpExKeypair(): Promise<{ publicKey: string; secretKey: string }> {
+export async function deriveOpExKeypair(): Promise<
+  { publicKey: string; secretKey: string }
+> {
   const seed = getMasterSeed();
   const encoder = new TextEncoder();
   const input = new Uint8Array([...seed, ...encoder.encode("opex")]);
