@@ -1,20 +1,13 @@
 /**
- * Adapter that wraps the Stellar Wallets Kit into the Signer interface
- * expected by the moonlight-sdk's MoonlightOperation.signWithEd25519().
- *
- * This allows the SDK to sign deposit auth entries via Freighter (or any
- * other SEP-43 wallet) without needing access to the private key.
+ * Adapter that wraps the stellar-wallets-kit v2 static API into the
+ * Signer interface expected by @colibri/core and moonlight-sdk.
  */
-import { StellarWalletsKit } from "@creit.tech/stellar-wallets-kit/stellar-wallets-kit.mjs";
+import { StellarWalletsKit } from "@creit-tech/stellar-wallets-kit/sdk";
 import { getNetworkPassphrase } from "./config.ts";
 import { getConnectedAddress } from "./wallet-state.ts";
+import { ensureKitInit } from "./wallet.ts";
 
-/**
- * Create a Signer-compatible object from the wallets-kit instance.
- * The returned object satisfies the colibri/core Signer interface:
- *   publicKey(), sign(), signTransaction(), signSorobanAuthEntry(), signsFor()
- */
-export function createWalletSigner(kit: StellarWalletsKit): {
+export function createWalletSigner(): {
   publicKey: () => string;
   sign: (data: Uint8Array) => Promise<Uint8Array>;
   signTransaction: (
@@ -28,6 +21,7 @@ export function createWalletSigner(kit: StellarWalletsKit): {
   ) => Promise<unknown>;
   signsFor: (publicKey: string) => boolean;
 } {
+  ensureKitInit();
   const address = getConnectedAddress();
   if (!address) throw new Error("Wallet not connected");
   const passphrase = getNetworkPassphrase();
@@ -36,7 +30,6 @@ export function createWalletSigner(kit: StellarWalletsKit): {
     publicKey: () => address,
 
     sign: (_data: Uint8Array) => {
-      // Not used by the deposit flow — signSorobanAuthEntry handles it
       return Promise.reject(
         new Error("Raw sign not supported via wallet kit"),
       );
@@ -46,7 +39,7 @@ export function createWalletSigner(kit: StellarWalletsKit): {
       xdr: string,
       opts?: { networkPassphrase?: string },
     ) => {
-      const result = await kit.signTransaction(xdr, {
+      const result = await StellarWalletsKit.signTransaction(xdr, {
         networkPassphrase: opts?.networkPassphrase ?? passphrase,
         address,
       });
@@ -58,17 +51,23 @@ export function createWalletSigner(kit: StellarWalletsKit): {
       _signatureExpirationLedger: number,
       networkPassphrase: string,
     ) => {
-      // The wallets-kit's signAuthEntry signs a Soroban auth entry.
-      // It expects the auth entry as a base64 XDR string.
       const entryXdr = typeof authEntry === "string"
         ? authEntry
         : (authEntry as { toXDR: (fmt: string) => string }).toXDR("base64");
 
-      const result = await kit.signAuthEntry(entryXdr, {
+      const result = await StellarWalletsKit.signAuthEntry(entryXdr, {
         networkPassphrase,
         address,
       });
-      return result.signedAuthEntry;
+
+      const signedXdr = result.signedAuthEntry;
+      if (!signedXdr) {
+        throw new Error("Wallet returned no signed auth entry");
+      }
+
+      // Parse back to XDR object — the moonlight-sdk expects this
+      const { xdr } = await import("stellar-sdk");
+      return xdr.SorobanAuthorizationEntry.fromXDR(signedXdr, "base64");
     },
 
     signsFor: (pk: string) => pk === address,

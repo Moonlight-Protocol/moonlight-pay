@@ -17,6 +17,7 @@
  */
 import { MoonlightOperation } from "@moonlight/moonlight-sdk";
 import { getPayPlatformUrl } from "./config.ts";
+import { buildDepositTx, submitTx } from "./stellar.ts";
 
 interface PrepareResult {
   council: {
@@ -168,6 +169,26 @@ export async function executeSelfCustodialPayment(opts: {
   const allOps: any[] = [];
 
   if (needsDeposit) {
+    // Step 4a: Deposit — SAC transfer from customer to privacy channel
+    // Freighter rejects consecutive wallet interactions without a delay
+    // between them (same pattern as login.ts signMessage → authenticate).
+    await new Promise((r) => setTimeout(r, 1000));
+
+    onStatus?.("Sign the deposit in your wallet...");
+    const depositXdr = await buildDepositTx({
+      customerWallet,
+      privacyChannelId: channel.privacyChannelId,
+      assetContractId: channel.assetContractId,
+      amountStroops,
+    });
+    const { signedTxXdr } = await signer.signTransaction(depositXdr, {
+      networkPassphrase: council.networkPassphrase,
+    });
+    onStatus?.("Submitting deposit...");
+    await submitTx(signedTxXdr);
+
+    // Step 4b: Build MLXDR operations for the privacy channel
+    onStatus?.("Building transaction...");
     const depositCount = 5;
     const depositKeypairs = customerKeypairs.slice(0, depositCount);
     const depositAmounts = partitionAmount(amountStroops, depositCount);
@@ -176,21 +197,12 @@ export async function executeSelfCustodialPayment(opts: {
       MoonlightOperation.create(kp.publicKey, depositAmounts[i])
     );
 
-    onStatus?.("Sign the deposit in your wallet...");
-    const depositOp = await MoonlightOperation.deposit(
+    const depositOp = MoonlightOperation.deposit(
       customerWallet as `G${string}`,
       amountStroops,
     )
-      .addConditions(customerCreateOps.map((op) => op.toCondition()))
-      .signWithEd25519(
-        signer,
-        expirationLedger,
-        channel.privacyChannelId as `C${string}`,
-        channel.assetContractId as `C${string}`,
-        council.networkPassphrase,
-      );
+      .addConditions(customerCreateOps.map((op) => op.toCondition()));
 
-    onStatus?.("Building transaction...");
     const spendOps = [];
     for (let i = 0; i < depositKeypairs.length; i++) {
       const spendOp = MoonlightOperation.spend(depositKeypairs[i].publicKey);

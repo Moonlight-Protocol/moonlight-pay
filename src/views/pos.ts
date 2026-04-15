@@ -19,7 +19,6 @@ import { executeSelfCustodialPayment } from "../lib/selfcustodial-payment.ts";
 import {
   connectWallet,
   getConnectedAddress,
-  getKit,
   signMessage,
 } from "../lib/wallet.ts";
 import { createWalletSigner } from "../lib/wallet-signer.ts";
@@ -191,7 +190,7 @@ export async function posView(): Promise<HTMLElement> {
           customerWallet = await connectWallet();
         }
 
-        const signer = createWalletSigner(getKit());
+        const signer = createWalletSigner();
 
         const result = await executeInstantPayment({
           customerWallet,
@@ -261,7 +260,7 @@ export async function posView(): Promise<HTMLElement> {
               customerWallet = await connectWallet();
             }
 
-            const signer = createWalletSigner(getKit());
+            const signer = createWalletSigner();
 
             const result = await executeSelfCustodialPayment({
               customerWallet,
