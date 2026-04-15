@@ -1,18 +1,14 @@
 /**
  * Wallet integration for Moonlight Pay.
  *
- * This file owns the stellar-wallets-kit instance and the high-level flows
- * (connect, sign, init master seed). All testable state lives in
- * wallet-state.ts so the test suite never has to import the kit (which
- * pulls in a broken @stellar/freighter-api transitive at module load).
+ * Uses stellar-wallets-kit v2 (static API). All testable state lives in
+ * wallet-state.ts so the test suite never has to import the kit.
  */
-import { StellarWalletsKit } from "@creit.tech/stellar-wallets-kit/stellar-wallets-kit.mjs";
-import { WalletNetwork } from "@creit.tech/stellar-wallets-kit/types.mjs";
+import { StellarWalletsKit } from "@creit-tech/stellar-wallets-kit/sdk";
+import { Networks } from "@creit-tech/stellar-wallets-kit/types";
 import {
-  FREIGHTER_ID,
   FreighterModule,
-} from "@creit.tech/stellar-wallets-kit/modules/freighter.module.mjs";
-import "@creit.tech/stellar-wallets-kit/components/modal/stellar-wallets-modal.mjs";
+} from "@creit-tech/stellar-wallets-kit/modules/freighter";
 import { getNetworkPassphrase, getStellarNetwork } from "./config.ts";
 import {
   deriveMasterSeedFromSignature,
@@ -22,8 +18,6 @@ import {
   setConnectedAddress,
 } from "./wallet-state.ts";
 
-// Re-export the read-only state surface so existing callers
-// (`page.ts`, `nav.ts`, etc.) keep importing from a single module.
 export {
   clearWalletState as clearSession,
   getConnectedAddress,
@@ -32,91 +26,57 @@ export {
   isMasterSeedReady,
 } from "./wallet-state.ts";
 
-let kit: StellarWalletsKit | null = null;
+let initialized = false;
 
-function getWalletNetwork(): WalletNetwork {
+function getWalletNetwork(): Networks {
   switch (getStellarNetwork()) {
     case "mainnet":
-      return WalletNetwork.PUBLIC;
+      return Networks.PUBLIC;
     case "standalone":
-      return WalletNetwork.STANDALONE;
+      return Networks.STANDALONE;
     default:
-      return WalletNetwork.TESTNET;
+      return Networks.TESTNET;
   }
 }
 
-export function getKit(): StellarWalletsKit {
-  if (!kit) {
-    // sep43Modules() returns only wallets that implement SEP-43 signMessage,
-    // which moonlight-pay requires for both master-seed derivation and the
-    // platform challenge-response. Adding non-SEP-43 wallets here would let
-    // users pick a wallet and then hit a dead end on the next step.
-    kit = new StellarWalletsKit({
-      network: getWalletNetwork(),
-      selectedWalletId: FREIGHTER_ID,
+function ensureInit(): void {
+  if (!initialized) {
+    StellarWalletsKit.init({
       modules: [new FreighterModule()],
+      network: getWalletNetwork(),
     });
+    initialized = true;
   }
-  return kit;
+  // If the user already connected (e.g. on the login page), tell the kit
+  // which wallet to use. v2's static API doesn't persist the selected
+  // wallet across page navigations automatically.
+  if (getConnectedAddress()) {
+    StellarWalletsKit.setWallet("freighter");
+  }
 }
 
-/**
- * Open wallet modal, connect, and store the user's address.
- * Returns the public key.
- */
-export function connectWallet(): Promise<string> {
-  const walletKit = getKit();
-
-  return new Promise((resolve, reject) => {
-    walletKit.openModal({
-      onWalletSelected: async (option) => {
-        walletKit.setWallet(option.id);
-        try {
-          const { address } = await walletKit.getAddress();
-          setConnectedAddress(address);
-          resolve(address);
-        } catch (err) {
-          reject(err);
-        }
-      },
-    }).catch(reject);
-  });
+export async function connectWallet(): Promise<string> {
+  ensureInit();
+  const { address } = await StellarWalletsKit.authModal();
+  setConnectedAddress(address);
+  return address;
 }
 
-/**
- * Shape returned by the kit's signMessage at runtime. The kit's published
- * type omits the `error` field, but real wallets (and the kit's runtime
- * dispatcher) can return one when the user rejects or the wallet errors —
- * so we type and check it explicitly.
- */
-interface SignMessageResult {
-  signedMessage?: string;
-  signerAddress?: string;
-  error?: string;
+/** Ensure the kit is initialized — called by wallet-signer too. */
+export function ensureKitInit(): void {
+  ensureInit();
 }
 
-/**
- * Sign an arbitrary message with the connected wallet (SEP-43).
- * Used for both master seed derivation and challenge-response auth.
- *
- * Throws on:
- *   - no connected wallet,
- *   - kit returning an `error` field (user rejection / wallet failure),
- *   - kit returning no `signedMessage` (some failure modes return neither
- *     `error` nor `signedMessage`).
- */
 export async function signMessage(message: string): Promise<string> {
+  ensureInit();
   const address = getConnectedAddress();
   if (!address) throw new Error("Wallet not connected");
 
-  const result = await getKit().signMessage(message, {
+  const result = await StellarWalletsKit.signMessage(message, {
     address,
     networkPassphrase: getNetworkPassphrase(),
-  }) as SignMessageResult;
+  });
 
-  if (result?.error) {
-    throw new Error(result.error);
-  }
   if (
     typeof result?.signedMessage !== "string" ||
     result.signedMessage.length === 0
@@ -126,19 +86,7 @@ export async function signMessage(message: string): Promise<string> {
   return result.signedMessage;
 }
 
-/**
- * Initialize the master seed.
- *
- * 1. If another open tab already has the seed, adopt it via BroadcastChannel
- *    (no extra wallet signature needed).
- * 2. Otherwise prompt the wallet for a fresh signature and derive the seed.
- *
- * Must be called once per tab before any key derivation. The seed lives
- * in memory only — see the security model in wallet-state.ts.
- */
 export async function initMasterSeed(): Promise<void> {
-  // Try cross-tab adoption first — saves the user a wallet prompt when
-  // they already have Moonlight Pay open in another tab.
   const adopted = await requestSeedFromOtherTabs();
   if (adopted && isMasterSeedReady()) return;
 

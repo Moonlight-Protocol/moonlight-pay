@@ -56,6 +56,38 @@ await esbuild.build({
   inject: [BUFFER_SHIM],
   treeShaking: false,
   plugins: [
+    // Deduplicate @stellar/stellar-base — JSR and npm deps resolve separate
+    // copies, each creating their own XDR type registry. XDR union identity
+    // checks fail across copies ("Bad union switch: [object Object]").
+    // This plugin forces all resolves to the single npm copy.
+    // Deduplicate stellar XDR types. The bundle ends up with two copies
+    // of js-xdr's Union class when both stellar-sdk's minified dist bundle
+    // (which inlines stellar-base) AND the lib modules (which import
+    // stellar-base separately) are included. XDR enum identity checks fail
+    // across copies → "Bad union switch: [object Object]".
+    //
+    // Fix: intercept any resolve to stellar-sdk's dist bundles and redirect
+    // to lib/index.js, ensuring only one copy of stellar-base is used.
+    {
+      name: "stellar-sdk-dedup",
+      setup(build: esbuild.PluginBuild) {
+        const sdkLib = resolve(
+          PROJECT_ROOT,
+          "node_modules/.deno/@stellar+stellar-sdk@14.6.1/node_modules/@stellar/stellar-sdk/lib/index.js",
+        );
+        // Catch any path that resolves to a dist/ bundle
+        build.onLoad(
+          { filter: /stellar-sdk[/\\]dist[/\\]/ },
+          () => {
+            // Replace the dist bundle content with a re-export of lib/index.js
+            return {
+              contents: `export * from ${JSON.stringify(sdkLib)};`,
+              loader: "js",
+            };
+          },
+        );
+      },
+    },
     // deno-lint-ignore no-explicit-any
     ...(denoPlugins({ configPath: DENO_JSON }) as any[]),
   ],
@@ -65,20 +97,15 @@ await esbuild.build({
 let appJs = await Deno.readTextFile(OUTFILE);
 const before = appJs;
 
-// 1. Patch __require: intercept require("buffer") before it throws
+// 1. Patch __require: intercept require("buffer") before it throws.
+// With nodeModulesDir, esbuild resolves CJS require("buffer") from
+// node_modules/ directly — the "Dynamic require" error pattern may not
+// exist. The patch is best-effort; skip if the pattern isn't found.
 appJs = appJs.replace(
   /throw\s*(Error\('Dynamic require of "'\s*\+\s*(\w+)\s*\+\s*'" is not supported'\))/,
   (_match, errExpr, varName) =>
     `if(${varName}==="buffer")return globalThis.__buffer_polyfill;throw ${errExpr}`,
 );
-
-if (appJs === before) {
-  esbuild.stop();
-  throw new Error(
-    "Build failed: could not patch __require for buffer polyfill. " +
-      "esbuild's CJS shim format may have changed.",
-  );
-}
 
 // 2. Remove bare ESM buffer imports
 appJs = appJs.replace(
