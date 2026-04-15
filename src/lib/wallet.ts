@@ -13,6 +13,7 @@ import { getNetworkPassphrase, getStellarNetwork } from "./config.ts";
 import {
   deriveMasterSeedFromSignature,
   getConnectedAddress,
+  getMasterSeed,
   isMasterSeedReady,
   requestSeedFromOtherTabs,
   setConnectedAddress,
@@ -84,6 +85,27 @@ export async function signMessage(message: string): Promise<string> {
     throw new Error("Wallet returned an empty signature");
   }
   return result.signedMessage;
+}
+
+/**
+ * Derive a deterministic OpEx (treasury) keypair from the master seed.
+ * SHA-256(masterSeed + "opex") → Ed25519 seed.
+ * No wallet interaction — pure math. One account per user, no index.
+ *
+ * NOTE: The returned secretKey is a JS string and cannot be zeroed from memory.
+ * This is a known limitation of JS string immutability — there is no way to
+ * clear it after use. Callers should avoid persisting it unnecessarily.
+ */
+export async function deriveOpExKeypair(): Promise<{ publicKey: string; secretKey: string }> {
+  const seed = getMasterSeed();
+  const encoder = new TextEncoder();
+  const input = new Uint8Array([...seed, ...encoder.encode("opex")]);
+  const derived = new Uint8Array(await crypto.subtle.digest("SHA-256", input));
+
+  // deno-lint-ignore no-explicit-any
+  const { Keypair } = await import("stellar-sdk") as any;
+  const keypair = Keypair.fromRawEd25519Seed(derived);
+  return { publicKey: keypair.publicKey(), secretKey: keypair.secret() };
 }
 
 export async function initMasterSeed(): Promise<void> {

@@ -133,13 +133,7 @@ export async function executeSelfCustodialPayment(opts: {
     }),
   });
   if (!prepareRes.ok) {
-    const errBody = await prepareRes.text().catch(() => "");
-    console.error(
-      `[selfcustodial] prepare failed: ${prepareRes.status} ${prepareRes.statusText}`,
-      `\nURL: ${baseUrl}/api/v1/pay/instant/prepare`,
-      `\nBody: ${errBody}`,
-    );
-    const err = (() => { try { return JSON.parse(errBody); } catch { return {}; } })();
+    const err = await prepareRes.json().catch(() => ({}));
     throw new Error(
       err.message ?? `Payment preparation failed: ${prepareRes.status}`,
     );
@@ -174,12 +168,13 @@ export async function executeSelfCustodialPayment(opts: {
   // deno-lint-ignore no-explicit-any
   const allOps: any[] = [];
 
-  console.log("[selfcustodial] prepare ok:", JSON.stringify({ council, channel, merchantUtxos: merchantUtxos.length, amountStroops: amountStroops.toString() }));
-
   if (needsDeposit) {
     // Step 4a: Deposit — SAC transfer from customer to privacy channel
+    // Freighter rejects consecutive wallet interactions without a delay
+    // between them (same pattern as login.ts signMessage → authenticate).
+    await new Promise((r) => setTimeout(r, 1000));
+
     onStatus?.("Sign the deposit in your wallet...");
-    console.log("[selfcustodial] building deposit tx...");
     const depositXdr = await buildDepositTx({
       customerWallet,
       privacyChannelId: channel.privacyChannelId,
@@ -190,9 +185,7 @@ export async function executeSelfCustodialPayment(opts: {
       networkPassphrase: council.networkPassphrase,
     });
     onStatus?.("Submitting deposit...");
-    console.log("[selfcustodial] submitting deposit to RPC...");
     await submitTx(signedTxXdr);
-    console.log("[selfcustodial] deposit confirmed on-chain");
 
     // Step 4b: Build MLXDR operations for the privacy channel
     onStatus?.("Building transaction...");
@@ -274,13 +267,7 @@ export async function executeSelfCustodialPayment(opts: {
   });
 
   if (!submitRes.ok) {
-    const submitErrBody = await submitRes.text().catch(() => "");
-    console.error(
-      `[selfcustodial] submit failed: ${submitRes.status} ${submitRes.statusText}`,
-      `\nURL: ${baseUrl}/api/v1/pay/instant/submit`,
-      `\nBody: ${submitErrBody}`,
-    );
-    const err = (() => { try { return JSON.parse(submitErrBody); } catch { return {}; } })();
+    const err = await submitRes.json().catch(() => ({}));
     throw new Error(
       err.message ?? `Payment submission failed: ${submitRes.status}`,
     );

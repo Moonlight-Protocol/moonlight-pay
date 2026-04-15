@@ -55,23 +55,10 @@ export function createWalletSigner(): {
         ? authEntry
         : (authEntry as { toXDR: (fmt: string) => string }).toXDR("base64");
 
-      console.debug(
-        "[signSorobanAuthEntry] entryXdr type:",
-        typeof entryXdr,
-        "length:",
-        entryXdr.length,
-        "first 40:",
-        entryXdr.substring(0, 40),
-      );
-
       const result = await StellarWalletsKit.signAuthEntry(entryXdr, {
         networkPassphrase,
         address,
       });
-      console.debug(
-        "[signSorobanAuthEntry] result:",
-        JSON.stringify(result).substring(0, 200),
-      );
 
       const signedXdr = result.signedAuthEntry;
       if (!signedXdr) {

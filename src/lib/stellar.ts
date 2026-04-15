@@ -7,7 +7,7 @@
  *
  * Follows the same pattern as council-console/src/lib/stellar.ts.
  */
-import { getNetworkPassphrase, getRpcUrl } from "./config.ts";
+import { getNetworkPassphrase, getRpcUrl, getStellarNetwork } from "./config.ts";
 
 // ─── Lazy-loaded SDK types ─────────────────────────────────────
 // Keep everything behind dynamic import so the module can be imported
@@ -99,15 +99,7 @@ export async function buildDepositTx(opts: {
   const server = await getRpcServer();
   const networkPassphrase = getNetworkPassphrase();
 
-  const rpcUrl = getRpcUrl();
-  console.log("[deposit] RPC URL:", rpcUrl);
-  console.log("[deposit] customerWallet:", customerWallet);
-  console.log("[deposit] privacyChannelId:", privacyChannelId);
-  console.log("[deposit] assetContractId:", assetContractId);
-  console.log("[deposit] amountStroops:", amountStroops.toString());
-
   const account = await server.getAccount(customerWallet);
-  console.log("[deposit] account loaded, seq:", account.sequenceNumber());
   const contract = new Contract(assetContractId);
 
   const tx = new TransactionBuilder(account, {
@@ -172,4 +164,101 @@ async function waitForTx(
     await new Promise((r) => setTimeout(r, 2000));
   }
   throw new Error(`Transaction ${hash} timed out`);
+}
+
+// ─── Horizon ───────────────────────────────────────────────────
+
+function getHorizonUrl(): string {
+  const rpcUrl = getRpcUrl();
+  // Standalone: RPC is http://host:port/soroban/rpc, Horizon is http://host:port
+  if (rpcUrl.includes("/soroban/rpc")) {
+    return rpcUrl.replace("/soroban/rpc", "");
+  }
+  // Public networks: derive from network name
+  switch (getStellarNetwork()) {
+    case "mainnet":
+      return "https://horizon.stellar.org";
+    default:
+      return "https://horizon-testnet.stellar.org";
+  }
+}
+
+/**
+ * Check if a Stellar account exists and return its native balance.
+ */
+export async function getAccountBalance(
+  publicKey: string,
+): Promise<{ xlm: string; funded: boolean }> {
+  try {
+    const res = await fetch(`${getHorizonUrl()}/accounts/${publicKey}`);
+    if (res.status === 404) return { xlm: "0", funded: false };
+    if (!res.ok) return { xlm: "0", funded: false };
+    const data = await res.json();
+    const native = data.balances?.find(
+      (b: { asset_type: string; balance: string }) => b.asset_type === "native",
+    );
+    return { xlm: native?.balance ?? "0", funded: true };
+  } catch {
+    return { xlm: "0", funded: false };
+  }
+}
+
+/**
+ * Build a transaction to fund the OpEx account.
+ * Uses createAccount if the account doesn't exist yet, or payment if it does.
+ * Returns the XDR string for wallet signing.
+ */
+export async function buildFundOpexTx(
+  sourcePublicKey: string,
+  destinationPublicKey: string,
+  amountXlm: string,
+): Promise<string> {
+  const stellar = await sdk();
+  const server = await getRpcServer();
+  const networkPassphrase = getNetworkPassphrase();
+
+  const account = await server.getAccount(sourcePublicKey);
+  const { funded } = await getAccountBalance(destinationPublicKey);
+
+  // deno-lint-ignore no-explicit-any
+  const { TransactionBuilder, Operation, Asset } = stellar as any;
+  const op = funded
+    ? Operation.payment({
+        destination: destinationPublicKey,
+        asset: Asset.native(),
+        amount: amountXlm,
+      })
+    : Operation.createAccount({
+        destination: destinationPublicKey,
+        startingBalance: amountXlm,
+      });
+
+  const tx = new TransactionBuilder(account, {
+    fee: "100000",
+    networkPassphrase,
+  })
+    .addOperation(op)
+    .setTimeout(30)
+    .build();
+
+  return tx.toXDR();
+}
+
+/**
+ * Submit a signed transaction via Horizon (for non-Soroban operations).
+ */
+export async function submitHorizonTx(signedXdr: string): Promise<void> {
+  const horizonUrl = getHorizonUrl();
+  const res = await fetch(`${horizonUrl}/transactions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: `tx=${encodeURIComponent(signedXdr)}`,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(
+      err.extras?.result_codes?.operations?.[0] || err.title ||
+        `Transaction failed: ${res.status}`,
+    );
+  }
 }

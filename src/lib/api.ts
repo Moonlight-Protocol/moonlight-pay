@@ -332,6 +332,20 @@ export async function updateMe(input: UpdateAccountInput): Promise<PayAccount> {
   );
 }
 
+// ─── OpEx ──────────────────────────────────────────────────
+
+export async function registerOpex(input: {
+  secretKey: string;
+  publicKey: string;
+  feePct: number;
+}): Promise<void> {
+  const res = await payFetch("/api/v1/account/opex", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) await throwFromErrorResponse(res, "Register OpEx failed");
+}
+
 // ─── Receive UTXOs ──────────────────────────────────────────
 
 export async function storeReceiveUtxos(
