@@ -16,6 +16,7 @@ export interface PayConfig {
   environment?: string;
   stellarNetwork?: StellarNetwork;
   payPlatformUrl?: string;
+  rpcUrl?: string;
   allowlist?: string[];
 }
 
@@ -25,6 +26,7 @@ interface ResolvedConfig {
   environment: string;
   stellarNetwork: StellarNetwork;
   payPlatformUrl: string;
+  rpcUrl: string;
 }
 
 let cached: ResolvedConfig | null = null;
@@ -50,6 +52,7 @@ function readConfig(): ResolvedConfig {
     environment: cfg.environment ?? "production",
     stellarNetwork: cfg.stellarNetwork ?? "testnet",
     payPlatformUrl: cfg.payPlatformUrl,
+    rpcUrl: cfg.rpcUrl ?? "https://soroban-testnet.stellar.org",
   };
   return cached;
 }
@@ -73,6 +76,10 @@ export function getStellarNetwork(): StellarNetwork {
 
 export function getPayPlatformUrl(): string {
   return readConfig().payPlatformUrl;
+}
+
+export function getRpcUrl(): string {
+  return readConfig().rpcUrl;
 }
 
 export function getNetworkPassphrase(): string {

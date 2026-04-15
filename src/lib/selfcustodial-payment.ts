@@ -17,6 +17,7 @@
  */
 import { MoonlightOperation } from "@moonlight/moonlight-sdk";
 import { getPayPlatformUrl } from "./config.ts";
+import { buildDepositTx, submitTx } from "./stellar.ts";
 
 interface PrepareResult {
   council: {
@@ -132,7 +133,13 @@ export async function executeSelfCustodialPayment(opts: {
     }),
   });
   if (!prepareRes.ok) {
-    const err = await prepareRes.json().catch(() => ({}));
+    const errBody = await prepareRes.text().catch(() => "");
+    console.error(
+      `[selfcustodial] prepare failed: ${prepareRes.status} ${prepareRes.statusText}`,
+      `\nURL: ${baseUrl}/api/v1/pay/instant/prepare`,
+      `\nBody: ${errBody}`,
+    );
+    const err = (() => { try { return JSON.parse(errBody); } catch { return {}; } })();
     throw new Error(
       err.message ?? `Payment preparation failed: ${prepareRes.status}`,
     );
@@ -167,7 +174,28 @@ export async function executeSelfCustodialPayment(opts: {
   // deno-lint-ignore no-explicit-any
   const allOps: any[] = [];
 
+  console.log("[selfcustodial] prepare ok:", JSON.stringify({ council, channel, merchantUtxos: merchantUtxos.length, amountStroops: amountStroops.toString() }));
+
   if (needsDeposit) {
+    // Step 4a: Deposit — SAC transfer from customer to privacy channel
+    onStatus?.("Sign the deposit in your wallet...");
+    console.log("[selfcustodial] building deposit tx...");
+    const depositXdr = await buildDepositTx({
+      customerWallet,
+      privacyChannelId: channel.privacyChannelId,
+      assetContractId: channel.assetContractId,
+      amountStroops,
+    });
+    const { signedTxXdr } = await signer.signTransaction(depositXdr, {
+      networkPassphrase: council.networkPassphrase,
+    });
+    onStatus?.("Submitting deposit...");
+    console.log("[selfcustodial] submitting deposit to RPC...");
+    await submitTx(signedTxXdr);
+    console.log("[selfcustodial] deposit confirmed on-chain");
+
+    // Step 4b: Build MLXDR operations for the privacy channel
+    onStatus?.("Building transaction...");
     const depositCount = 5;
     const depositKeypairs = customerKeypairs.slice(0, depositCount);
     const depositAmounts = partitionAmount(amountStroops, depositCount);
@@ -176,21 +204,12 @@ export async function executeSelfCustodialPayment(opts: {
       MoonlightOperation.create(kp.publicKey, depositAmounts[i])
     );
 
-    onStatus?.("Sign the deposit in your wallet...");
-    const depositOp = await MoonlightOperation.deposit(
+    const depositOp = MoonlightOperation.deposit(
       customerWallet as `G${string}`,
       amountStroops,
     )
-      .addConditions(customerCreateOps.map((op) => op.toCondition()))
-      .signWithEd25519(
-        signer,
-        expirationLedger,
-        channel.privacyChannelId as `C${string}`,
-        channel.assetContractId as `C${string}`,
-        council.networkPassphrase,
-      );
+      .addConditions(customerCreateOps.map((op) => op.toCondition()));
 
-    onStatus?.("Building transaction...");
     const spendOps = [];
     for (let i = 0; i < depositKeypairs.length; i++) {
       const spendOp = MoonlightOperation.spend(depositKeypairs[i].publicKey);
@@ -255,7 +274,13 @@ export async function executeSelfCustodialPayment(opts: {
   });
 
   if (!submitRes.ok) {
-    const err = await submitRes.json().catch(() => ({}));
+    const submitErrBody = await submitRes.text().catch(() => "");
+    console.error(
+      `[selfcustodial] submit failed: ${submitRes.status} ${submitRes.statusText}`,
+      `\nURL: ${baseUrl}/api/v1/pay/instant/submit`,
+      `\nBody: ${submitErrBody}`,
+    );
+    const err = (() => { try { return JSON.parse(submitErrBody); } catch { return {}; } })();
     throw new Error(
       err.message ?? `Payment submission failed: ${submitRes.status}`,
     );
