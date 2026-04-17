@@ -5,9 +5,15 @@ import { isPlatformAuthed } from "./lib/api.ts";
 import { loginView } from "./views/login.ts";
 import { homeView } from "./views/home.ts";
 import { posView } from "./views/pos.ts";
+import { adminView } from "./views/admin.ts";
+import { accountView } from "./views/onboarding/account.ts";
+import { treasuryView } from "./views/onboarding/treasury.ts";
 
 route("/login", loginView);
 route("/", homeView);
+route("/admin", adminView);
+route("/onboarding/account", accountView);
+route("/onboarding/treasury", treasuryView);
 routePrefix("/pay/", posView);
 
 route("/404", () => {

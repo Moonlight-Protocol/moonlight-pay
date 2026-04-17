@@ -27,10 +27,29 @@
 import { base64UrlToBytes } from "./encoding.ts";
 
 const ADDRESS_KEY = "moonlight_pay_wallet_address";
+const SEED_KEY = "moonlight_pay_seed";
 const SEED_CHANNEL = "moonlight_pay_seed_v1";
 
 let cachedAddress: string | null | undefined = undefined;
 let masterSeed: Uint8Array | null = null;
+
+// Restore master seed from sessionStorage on module load (survives refresh,
+// cleared on tab close — same pattern as council-console).
+{
+  // deno-lint-ignore no-explicit-any
+  const ss = (globalThis as any).sessionStorage;
+  if (ss) {
+    const stored = ss.getItem(SEED_KEY);
+    if (stored) {
+      try {
+        masterSeed = Uint8Array.from(atob(stored), (c) => c.charCodeAt(0));
+      } catch {
+        ss.removeItem(SEED_KEY);
+        masterSeed = null;
+      }
+    }
+  }
+}
 let channel: BroadcastChannel | null = null;
 let channelInstalled = false;
 // Reference held so the test reset hook can removeEventListener; without
@@ -174,6 +193,13 @@ export async function deriveMasterSeedFromSignature(
   // Zero any pre-existing seed before replacing — see clearWalletState().
   if (masterSeed) masterSeed.fill(0);
   masterSeed = seed;
+  // Persist to sessionStorage so it survives page refresh but is cleared
+  // when the tab closes (same pattern as council-console).
+  // deno-lint-ignore no-explicit-any
+  const ss = (globalThis as any).sessionStorage;
+  if (ss) {
+    ss.setItem(SEED_KEY, btoa(String.fromCharCode(...seed)));
+  }
   return seed;
 }
 
@@ -188,6 +214,9 @@ export function clearWalletState(): void {
     masterSeed.fill(0);
     masterSeed = null;
   }
+  // deno-lint-ignore no-explicit-any
+  const ss = (globalThis as any).sessionStorage;
+  if (ss) ss.removeItem(SEED_KEY);
   cachedAddress = null;
   const storage = getLocalStorage();
   if (storage) storage.removeItem(ADDRESS_KEY);

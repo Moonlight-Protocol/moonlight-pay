@@ -285,6 +285,8 @@ export interface PayAccount {
   email: string;
   jurisdictionCountryCode: string;
   displayName: string | null;
+  opexPublicKey: string | null;
+  feePct: number | null;
   lastSeenAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -407,4 +409,154 @@ export async function listTransactions(
     await parseJsonBody(res),
     "GET /transactions",
   );
+}
+
+// ─── Admin ─────────────────────────────────────────────────
+
+// deno-lint-ignore no-explicit-any
+export type AdminCouncil = Record<string, any>;
+// deno-lint-ignore no-explicit-any
+export type AdminChannel = Record<string, any>;
+// deno-lint-ignore no-explicit-any
+export type AdminPp = Record<string, any>;
+
+export async function adminListCouncils(): Promise<AdminCouncil[]> {
+  const res = await payFetch("/api/v1/admin/councils");
+  if (!res.ok) await throwFromErrorResponse(res, "List councils failed");
+  return unwrapData<AdminCouncil[]>(
+    await parseJsonBody(res),
+    "GET /admin/councils",
+  );
+}
+
+export async function adminGetCouncil(id: string): Promise<AdminCouncil> {
+  const res = await payFetch(`/api/v1/admin/councils/${id}`);
+  if (!res.ok) await throwFromErrorResponse(res, "Get council failed");
+  return unwrapData<AdminCouncil>(
+    await parseJsonBody(res),
+    "GET /admin/councils/:id",
+  );
+}
+
+export async function adminCreateCouncil(
+  data: Record<string, unknown>,
+): Promise<AdminCouncil> {
+  const res = await payFetch("/api/v1/admin/councils", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) await throwFromErrorResponse(res, "Create council failed");
+  return unwrapData<AdminCouncil>(
+    await parseJsonBody(res),
+    "POST /admin/councils",
+  );
+}
+
+export async function adminUpdateCouncil(
+  id: string,
+  data: Record<string, unknown>,
+): Promise<AdminCouncil> {
+  const res = await payFetch(`/api/v1/admin/councils/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) await throwFromErrorResponse(res, "Update council failed");
+  return unwrapData<AdminCouncil>(
+    await parseJsonBody(res),
+    "PATCH /admin/councils/:id",
+  );
+}
+
+export async function adminDeleteCouncil(id: string): Promise<void> {
+  const res = await payFetch(`/api/v1/admin/councils/${id}`, {
+    method: "DELETE",
+  });
+  if (!res.ok && res.status !== 204) {
+    await throwFromErrorResponse(res, "Delete council failed");
+  }
+}
+
+export async function adminCreateChannel(
+  councilId: string,
+  data: Record<string, unknown>,
+): Promise<AdminChannel> {
+  const res = await payFetch(`/api/v1/admin/councils/${councilId}/channels`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) await throwFromErrorResponse(res, "Create channel failed");
+  return unwrapData<AdminChannel>(
+    await parseJsonBody(res),
+    "POST /admin/councils/:id/channels",
+  );
+}
+
+export async function adminDeleteChannel(
+  councilId: string,
+  channelId: string,
+): Promise<void> {
+  const res = await payFetch(
+    `/api/v1/admin/councils/${councilId}/channels/${channelId}`,
+    { method: "DELETE" },
+  );
+  if (!res.ok && res.status !== 204) {
+    await throwFromErrorResponse(res, "Delete channel failed");
+  }
+}
+
+export async function adminCreatePp(
+  councilId: string,
+  data: Record<string, unknown>,
+): Promise<AdminPp> {
+  const res = await payFetch(`/api/v1/admin/councils/${councilId}/pps`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) await throwFromErrorResponse(res, "Create PP failed");
+  return unwrapData<AdminPp>(
+    await parseJsonBody(res),
+    "POST /admin/councils/:id/pps",
+  );
+}
+
+export async function adminUpdatePp(
+  councilId: string,
+  ppId: string,
+  data: Record<string, unknown>,
+): Promise<AdminPp> {
+  const res = await payFetch(
+    `/api/v1/admin/councils/${councilId}/pps/${ppId}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    },
+  );
+  if (!res.ok) await throwFromErrorResponse(res, "Update PP failed");
+  return unwrapData<AdminPp>(
+    await parseJsonBody(res),
+    "PATCH /admin/councils/:id/pps/:id",
+  );
+}
+
+export async function adminDeletePp(
+  councilId: string,
+  ppId: string,
+): Promise<void> {
+  const res = await payFetch(
+    `/api/v1/admin/councils/${councilId}/pps/${ppId}`,
+    { method: "DELETE" },
+  );
+  if (!res.ok && res.status !== 204) {
+    await throwFromErrorResponse(res, "Delete PP failed");
+  }
+}
+
+// deno-lint-ignore no-explicit-any
+export async function adminDiscoverCouncil(councilUrl: string): Promise<any> {
+  const res = await payFetch("/api/v1/admin/councils/discover", {
+    method: "POST",
+    body: JSON.stringify({ councilUrl }),
+  });
+  if (!res.ok) await throwFromErrorResponse(res, "Discover council failed");
+  return unwrapData(await parseJsonBody(res), "POST /admin/councils/discover");
 }

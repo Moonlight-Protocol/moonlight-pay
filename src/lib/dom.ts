@@ -56,8 +56,18 @@ export function friendlyError(error: unknown): string {
   ) {
     return "Your wallet doesn't have enough funds to complete this transaction.";
   }
-  if (lower.includes("not found")) {
+  if (lower.includes("account not found") || lower === "not found") {
     return "The requested resource was not found.";
+  }
+  // If the message looks like a readable API error (starts with a capital
+  // letter, contains spaces, no technical tokens like "at" + address),
+  // pass it through instead of replacing with a generic message.
+  if (
+    msg.length > 10 && msg.length < 200 && /^[A-Z]/.test(msg) &&
+    msg.includes(" ") && !/\d+\.\d+\.\d+/.test(msg) &&
+    !msg.includes("ECONN") && !msg.includes("ENOENT")
+  ) {
+    return msg;
   }
   // Log the full error for debugging, return a generic message
   console.warn("[friendlyError]", msg);

@@ -18,6 +18,7 @@ export interface PayConfig {
   payPlatformUrl?: string;
   rpcUrl?: string;
   allowlist?: string[];
+  adminWallets?: string[];
 }
 
 export type StellarNetwork = "testnet" | "mainnet" | "standalone";
@@ -96,5 +97,11 @@ export function getNetworkPassphrase(): string {
 export function isAllowed(address: string): boolean {
   const cfg = readWindowConfig();
   const list = cfg?.allowlist ?? [];
+  return list.includes("*") || list.includes(address);
+}
+
+export function isAdmin(address: string): boolean {
+  const cfg = readWindowConfig();
+  const list = cfg?.adminWallets ?? [];
   return list.includes("*") || list.includes(address);
 }

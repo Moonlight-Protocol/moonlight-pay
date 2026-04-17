@@ -68,8 +68,17 @@ Deno.test("friendlyError maps insufficient-funds variants", () => {
 
 Deno.test("friendlyError maps not-found errors", () => {
   assertEquals(
-    friendlyError(new Error("Resource not found")),
+    friendlyError(new Error("Account not found")),
     "The requested resource was not found.",
+  );
+});
+
+Deno.test("friendlyError passes through readable API messages", () => {
+  assertEquals(
+    friendlyError(
+      new Error("No council available for this merchant's jurisdiction"),
+    ),
+    "No council available for this merchant's jurisdiction",
   );
 });
 
