@@ -75,7 +75,9 @@ Deno.test("friendlyError maps not-found errors", () => {
 
 Deno.test("friendlyError passes through readable API messages", () => {
   assertEquals(
-    friendlyError(new Error("No council available for this merchant's jurisdiction")),
+    friendlyError(
+      new Error("No council available for this merchant's jurisdiction"),
+    ),
     "No council available for this merchant's jurisdiction",
   );
 });
