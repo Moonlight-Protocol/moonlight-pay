@@ -264,9 +264,11 @@ function renderCouncilForm(
           confirmBtn.disabled = true;
           confirmBtn.textContent = "Creating...";
           try {
+            const councilUrl = new URL(url).origin;
             await adminCreateCouncil({
               name,
               channelAuthId,
+              councilUrl,
               jurisdictions,
               channels,
               active: true,

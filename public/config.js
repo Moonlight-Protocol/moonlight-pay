@@ -3,5 +3,7 @@ window.__PAY_CONFIG__ = {
   environment: "development",
   stellarNetwork: "standalone",
   payPlatformUrl: "http://localhost:3025",
+  rpcUrl: "http://localhost:8000/soroban/rpc",
   allowlist: ["*"],
+  adminWallets: ["*"],
 };
