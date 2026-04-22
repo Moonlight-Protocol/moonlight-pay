@@ -43,7 +43,9 @@ function getCSP(): string {
     connectSrc.push("http://localhost:*");
     // Docker Compose: allow connections to service hostnames (e.g. http://pay:3025)
     const extraHosts = Deno.env.get("CSP_CONNECT_HOSTS");
-    if (extraHosts) extraHosts.split(",").forEach((h) => connectSrc.push(h.trim()));
+    if (extraHosts) {
+      extraHosts.split(",").forEach((h) => connectSrc.push(h.trim()));
+    }
   }
 
   return [
