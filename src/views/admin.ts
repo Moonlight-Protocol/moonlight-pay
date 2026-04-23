@@ -233,6 +233,13 @@ function renderCouncilForm(
           privacyChannelId: ch.channelContractId,
         }),
       );
+      const providers = (data.providers ?? []).map(
+        (p: { publicKey: string; label?: string; providerUrl?: string }) => ({
+          publicKey: p.publicKey,
+          label: p.label,
+          providerUrl: p.providerUrl,
+        }),
+      );
 
       previewEl.hidden = false;
       previewEl.innerHTML = `
@@ -251,6 +258,14 @@ function renderCouncilForm(
           ).join(", ")
           : "<em>none</em>"
       }</div>
+          <div><strong>Providers:</strong> ${
+        providers.length > 0
+          ? providers.map(
+            (p: { label?: string; publicKey: string }) =>
+              escapeHtml(p.label || p.publicKey.substring(0, 8)),
+          ).join(", ")
+          : "<em>none</em>"
+      }</div>
         </div>
         <button id="cf-confirm" class="btn-primary" style="padding:0.4rem 1.5rem">Add Council</button>
       `;
@@ -264,13 +279,12 @@ function renderCouncilForm(
           confirmBtn.disabled = true;
           confirmBtn.textContent = "Creating...";
           try {
-            const councilUrl = new URL(url).origin;
             await adminCreateCouncil({
               name,
               channelAuthId,
-              councilUrl,
               jurisdictions,
               channels,
+              providers,
               active: true,
             });
             await renderCouncilList(target);
