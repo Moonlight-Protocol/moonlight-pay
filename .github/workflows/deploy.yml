@@ -47,6 +47,7 @@ jobs:
             payPlatformUrl: "${{ secrets.PAY_PLATFORM_URL }}",
             allowlist: $ALLOWLIST,
             otelEndpoint: "${{ secrets.OTEL_ENDPOINT }}",
+            otelAuth: "${{ secrets.OTEL_AUTH }}",
           };
           EOF
 
@@ -87,6 +88,7 @@ jobs:
             payPlatformUrl: "${{ secrets.MAINNET_PAY_PLATFORM_URL }}",
             allowlist: $ALLOWLIST,
             otelEndpoint: "${{ secrets.MAINNET_OTEL_ENDPOINT }}",
+            otelAuth: "${{ secrets.MAINNET_OTEL_AUTH }}",
           };
           EOF
 
