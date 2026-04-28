@@ -1,6 +1,6 @@
 {
   "name": "@moonlight-protocol/moonlight-pay",
-  "version": "0.5.4",
+  "version": "0.5.5",
   "license": "MIT",
   "tasks": {
     "dev": "MODE=development PORT=3050 deno run --allow-net --allow-read --allow-env --watch src/server.ts",
@@ -29,13 +29,10 @@
     "@creit-tech/stellar-wallets-kit/sdk": "npm:@creit.tech/stellar-wallets-kit@^2.1.0/sdk",
     "@creit-tech/stellar-wallets-kit/types": "npm:@creit.tech/stellar-wallets-kit@^2.1.0/types",
     "@creit-tech/stellar-wallets-kit/modules/freighter": "npm:@creit.tech/stellar-wallets-kit@^2.1.0/modules/freighter",
-    "@moonlight/moonlight-sdk": "jsr:@moonlight/moonlight-sdk@^0.7.0",
+    "@moonlight/moonlight-sdk": "jsr:@moonlight/moonlight-sdk@^0.8.0",
     "@noble/curves": "jsr:@noble/curves@^1.8.0",
-    "stellar-sdk": "npm:@stellar/stellar-sdk@14.6.1",
-    "npm:@stellar/stellar-sdk": "npm:@stellar/stellar-sdk@14.6.1",
-    "npm:@stellar/stellar-sdk@^14.2.0": "npm:@stellar/stellar-sdk@14.6.1",
-    "npm:@stellar/stellar-sdk@^14.3.3": "npm:@stellar/stellar-sdk@14.6.1",
-    "npm:@stellar/stellar-sdk@^14.6.1": "npm:@stellar/stellar-sdk@14.6.1",
+    "stellar-sdk": "npm:@stellar/stellar-sdk@^15.0.1",
+    "npm:@stellar/stellar-sdk": "npm:@stellar/stellar-sdk@^15.0.1",
     "buffer": "npm:buffer@^6.0.3"
   }
 }
