@@ -12,11 +12,11 @@
  *
  * IMPORTANT — DO NOT REMOVE the `stellar-sdk` entry from deno.json's
  * imports. It looks unused (no `import` from src/) but it's load-bearing:
- * it pins the wallets-kit's `@stellar/stellar-sdk` peer dep to 14.2.0.
- * Without it, Deno re-resolves with newer transitive deps (near-api-js,
- * react, multiple bufferutil/utf-8-validate variants) that produce a
- * cache directory path exceeding macOS's 255-char filesystem limit, and
- * the build fails with "File name too long (os error 63)".
+ * it pins the wallets-kit's `@stellar/stellar-sdk` peer dep. Without it,
+ * Deno re-resolves with newer transitive deps (near-api-js, react,
+ * multiple bufferutil/utf-8-validate variants) that produce a cache
+ * directory path exceeding macOS's 255-char filesystem limit, and the
+ * build fails with "File name too long (os error 63)".
  *
  * IMPORTANT — DO NOT REGENERATE deno.lock from scratch on macOS. The
  * committed lock file pins the kit to a short-path resolution; deleting
@@ -73,7 +73,7 @@ await esbuild.build({
       setup(build: esbuild.PluginBuild) {
         const sdkLib = resolve(
           PROJECT_ROOT,
-          "node_modules/.deno/@stellar+stellar-sdk@14.6.1/node_modules/@stellar/stellar-sdk/lib/index.js",
+          "node_modules/.deno/@stellar+stellar-sdk@15.0.1/node_modules/@stellar/stellar-sdk/lib/index.js",
         );
         // Catch any path that resolves to a dist/ bundle
         build.onLoad(
