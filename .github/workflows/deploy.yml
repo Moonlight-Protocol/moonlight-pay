@@ -46,6 +46,7 @@ jobs:
             stellarNetwork: "${{ secrets.STELLAR_NETWORK }}",
             payPlatformUrl: "${{ secrets.PAY_PLATFORM_URL }}",
             allowlist: $ALLOWLIST,
+            otelEndpoint: "${{ secrets.OTEL_ENDPOINT }}",
           };
           EOF
 
@@ -85,6 +86,7 @@ jobs:
             stellarNetwork: "testnet",
             payPlatformUrl: "${{ secrets.MAINNET_PAY_PLATFORM_URL }}",
             allowlist: $ALLOWLIST,
+            otelEndpoint: "${{ secrets.MAINNET_OTEL_ENDPOINT }}",
           };
           EOF
 

@@ -11,8 +11,16 @@
  * components and wouldn't load under Deno test).
  */
 import { getPayPlatformUrl } from "./config.ts";
+import { currentTraceparent } from "./tracer.ts";
 
 const TOKEN_KEY = "moonlight_pay_jwt";
+
+function withTraceparent(
+  headers: Record<string, string>,
+): Record<string, string> {
+  const tp = currentTraceparent();
+  return tp ? { ...headers, traceparent: tp } : headers;
+}
 
 /**
  * Thrown by the API client when the platform rejects the bearer token.
@@ -178,7 +186,7 @@ export async function authenticate(deps: WalletAuthDeps): Promise<string> {
   // Step 1: request challenge
   const challengeRes = await fetch(`${baseUrl}/api/v1/auth/challenge`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: withTraceparent({ "Content-Type": "application/json" }),
     body: JSON.stringify({ publicKey: deps.publicKey }),
   });
   if (!challengeRes.ok) {
@@ -204,7 +212,7 @@ export async function authenticate(deps: WalletAuthDeps): Promise<string> {
   // Step 3: verify signature, receive JWT
   const verifyRes = await fetch(`${baseUrl}/api/v1/auth/verify`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: withTraceparent({ "Content-Type": "application/json" }),
     body: JSON.stringify({ nonce, signature, publicKey: deps.publicKey }),
   });
   if (!verifyRes.ok) {
@@ -263,11 +271,11 @@ async function payFetch(
 
   const res = await fetch(`${getPayPlatformUrl()}${path}`, {
     ...opts,
-    headers: {
+    headers: withTraceparent({
       "Content-Type": "application/json",
       "Authorization": `Bearer ${token}`,
       ...headersToRecord(opts.headers),
-    },
+    }),
   });
 
   if (res.status === 401) {

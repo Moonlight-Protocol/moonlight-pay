@@ -5,6 +5,7 @@ import { createAccount, getMe, storeReceiveUtxos } from "../../lib/api.ts";
 import { deriveReceiveUtxos } from "../../lib/utxo-derivation.ts";
 import { COUNTRY_CODES } from "../../lib/jurisdictions.ts";
 import { escapeHtml, friendlyError, truncateAddress } from "../../lib/dom.ts";
+import { startTrace, withSpan } from "../../lib/tracer.ts";
 
 function renderStep(): HTMLElement {
   const el = document.createElement("div");
@@ -90,21 +91,30 @@ function renderStep(): HTMLElement {
     statusEl.textContent = "Creating your account...";
 
     try {
-      await createAccount({
-        email,
-        jurisdictionCountryCode,
-        displayName: displayName || undefined,
-      });
+      const { traceId } = startTrace();
+      await withSpan(
+        "pay.create_account",
+        traceId,
+        async () => {
+          await createAccount({
+            email,
+            jurisdictionCountryCode,
+            displayName: displayName || undefined,
+          });
 
-      statusEl.textContent = "Generating receive addresses...";
-      let seed: Uint8Array;
-      try {
-        seed = getMasterSeed();
-      } catch {
-        throw new Error("Master key was lost. Please sign in again.");
-      }
-      const utxos = await deriveReceiveUtxos(seed, email);
-      await storeReceiveUtxos(utxos);
+          statusEl.textContent = "Generating receive addresses...";
+          let seed: Uint8Array;
+          try {
+            seed = getMasterSeed();
+          } catch {
+            throw new Error("Master key was lost. Please sign in again.");
+          }
+          const utxos = await deriveReceiveUtxos(seed, email);
+          await storeReceiveUtxos(utxos);
+        },
+        undefined,
+        { "account.jurisdiction": jurisdictionCountryCode },
+      );
 
       navigate("/onboarding/treasury");
     } catch (err) {

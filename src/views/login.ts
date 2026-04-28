@@ -29,6 +29,7 @@ import {
 import { navigate } from "../lib/router.ts";
 import { escapeHtml, friendlyError, truncateAddress } from "../lib/dom.ts";
 import { getPayPlatformUrl, isAllowed } from "../lib/config.ts";
+import { startTrace, withSpan } from "../lib/tracer.ts";
 
 export async function loginView(): Promise<HTMLElement> {
   const container = document.createElement("div");
@@ -99,19 +100,23 @@ function renderConnectStep(
     errorEl.hidden = true;
 
     try {
-      connectBtn.textContent = "Connecting...";
-      await connectWallet();
+      const { traceId } = startTrace();
+      const publicKey = await withSpan("pay.login", traceId, async () => {
+        connectBtn.textContent = "Connecting...";
+        await connectWallet();
 
-      connectBtn.textContent = "Setting up...";
-      await initMasterSeed();
+        connectBtn.textContent = "Setting up...";
+        await initMasterSeed();
 
-      // Freighter rejects consecutive signMessage calls without a delay
-      await new Promise((r) => setTimeout(r, 1000));
+        // Freighter rejects consecutive signMessage calls without a delay
+        await new Promise((r) => setTimeout(r, 1000));
 
-      connectBtn.textContent = "Authenticating...";
-      const publicKey = getConnectedAddress();
-      if (!publicKey) throw new Error("Wallet not connected");
-      await authenticate({ publicKey, sign: signMessage });
+        connectBtn.textContent = "Authenticating...";
+        const pk = getConnectedAddress();
+        if (!pk) throw new Error("Wallet not connected");
+        await authenticate({ publicKey: pk, sign: signMessage });
+        return pk;
+      });
 
       if (publicKey && !isAllowed(publicKey)) {
         renderInviteOnly(container, publicKey);

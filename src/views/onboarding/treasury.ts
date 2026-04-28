@@ -9,6 +9,7 @@ import {
   submitHorizonTx,
 } from "../../lib/stellar.ts";
 import { createWalletSigner } from "../../lib/wallet-signer.ts";
+import { startTrace, withSpan } from "../../lib/tracer.ts";
 
 function renderStep(): HTMLElement {
   const el = document.createElement("div");
@@ -141,16 +142,25 @@ function renderStep(): HTMLElement {
       const sourceAddress = getConnectedAddress();
       if (!sourceAddress) throw new Error("Wallet not connected");
 
-      const txXdr = await buildFundOpexTx(
-        sourceAddress,
-        opexPublicKey,
-        amount,
+      const { traceId } = startTrace();
+      await withSpan(
+        "pay.fund_opex",
+        traceId,
+        async () => {
+          const txXdr = await buildFundOpexTx(
+            sourceAddress,
+            opexPublicKey,
+            amount,
+          );
+          fundBtn.textContent = "Sign in wallet...";
+          const signer = createWalletSigner();
+          const { signedTxXdr } = await signer.signTransaction(txXdr);
+          fundBtn.textContent = "Submitting...";
+          await submitHorizonTx(signedTxXdr);
+        },
+        undefined,
+        { "fund.amount_xlm": amount, "opex.public_key": opexPublicKey },
       );
-      fundBtn.textContent = "Sign in wallet...";
-      const signer = createWalletSigner();
-      const { signedTxXdr } = await signer.signTransaction(txXdr);
-      fundBtn.textContent = "Submitting...";
-      await submitHorizonTx(signedTxXdr);
 
       fundBtn.textContent = "Funded!";
       await checkBalance();
@@ -175,11 +185,19 @@ function renderStep(): HTMLElement {
         throw new Error("Fee must be between 0 and 100");
       }
 
-      await registerOpex({
-        secretKey: opexSecretKey,
-        publicKey: opexPublicKey,
-        feePct,
-      });
+      const { traceId } = startTrace();
+      await withSpan(
+        "pay.register_opex",
+        traceId,
+        () =>
+          registerOpex({
+            secretKey: opexSecretKey,
+            publicKey: opexPublicKey,
+            feePct,
+          }),
+        undefined,
+        { "opex.public_key": opexPublicKey, "opex.fee_pct": feePct },
+      );
 
       navigate("/");
     } catch (err) {

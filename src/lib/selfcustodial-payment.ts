@@ -18,6 +18,16 @@
 import { MoonlightOperation } from "@moonlight/moonlight-sdk";
 import { getPayPlatformUrl } from "./config.ts";
 import { buildDepositTx, submitTx } from "./stellar.ts";
+import { currentTraceparent } from "./tracer.ts";
+
+function jsonHeaders(): Record<string, string> {
+  const tp = currentTraceparent();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (tp) headers.traceparent = tp;
+  return headers;
+}
 
 interface PrepareResult {
   council: {
@@ -123,7 +133,7 @@ export async function executeSelfCustodialPayment(opts: {
   onStatus?.("Preparing payment...");
   const prepareRes = await fetch(`${baseUrl}/api/v1/pay/instant/prepare`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: jsonHeaders(),
     body: JSON.stringify({
       merchantWallet,
       amountXlm,
@@ -254,7 +264,7 @@ export async function executeSelfCustodialPayment(opts: {
   onStatus?.("Submitting payment...");
   const submitRes = await fetch(`${baseUrl}/api/v1/pay/instant/submit`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: jsonHeaders(),
     body: JSON.stringify({
       customerWallet,
       merchantWallet,
