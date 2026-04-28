@@ -9,6 +9,16 @@
  */
 import { getPayPlatformUrl } from "./config.ts";
 import { buildFundOpexTx, submitHorizonTx } from "./stellar.ts";
+import { currentTraceparent } from "./tracer.ts";
+
+function jsonHeaders(): Record<string, string> {
+  const tp = currentTraceparent();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (tp) headers.traceparent = tp;
+  return headers;
+}
 
 interface PrepareResult {
   council: {
@@ -69,7 +79,7 @@ export async function executeInstantPayment(opts: {
   onStatus?.("Preparing payment...");
   const prepareRes = await fetch(`${baseUrl}/api/v1/pay/instant/prepare`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: jsonHeaders(),
     body: JSON.stringify({
       merchantWallet,
       amountXlm,
@@ -118,7 +128,7 @@ export async function executeInstantPayment(opts: {
   onStatus?.("Processing payment...");
   const submitRes = await fetch(`${baseUrl}/api/v1/pay/instant/execute`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: jsonHeaders(),
     body: JSON.stringify({
       customerPaymentHash: txHash,
       merchantWallet,

@@ -22,6 +22,7 @@ import {
   signMessage,
 } from "../lib/wallet.ts";
 import { createWalletSigner } from "../lib/wallet-signer.ts";
+import { startTrace, withSpan } from "../lib/tracer.ts";
 
 interface MerchantInfo {
   walletPublicKey: string;
@@ -192,17 +193,29 @@ export async function posView(): Promise<HTMLElement> {
 
         const signer = createWalletSigner();
 
-        const result = await executeInstantPayment({
-          customerWallet,
-          merchantWallet: params.merchantWallet,
-          amountXlm: amount.toString(),
-          description: params.description ?? undefined,
-          signer,
-          payerJurisdiction: params.jurisdiction ?? undefined,
-          onStatus: (msg) => {
-            statusEl.textContent = msg;
+        const { traceId } = startTrace();
+        const result = await withSpan(
+          "pay.instant_checkout",
+          traceId,
+          () =>
+            executeInstantPayment({
+              customerWallet,
+              merchantWallet: params.merchantWallet,
+              amountXlm: amount.toString(),
+              description: params.description ?? undefined,
+              signer,
+              payerJurisdiction: params.jurisdiction ?? undefined,
+              onStatus: (msg) => {
+                statusEl.textContent = msg;
+              },
+            }),
+          undefined,
+          {
+            "merchant.public_key": params.merchantWallet,
+            "customer.public_key": customerWallet,
+            "amount.xlm": amount.toString(),
           },
-        });
+        );
 
         statusEl.textContent = `Payment complete! TX: ${result.transactionId}`;
       } catch (err) {
@@ -262,19 +275,31 @@ export async function posView(): Promise<HTMLElement> {
 
             const signer = createWalletSigner();
 
-            const result = await executeSelfCustodialPayment({
-              customerWallet,
-              merchantWallet: params.merchantWallet,
-              amountXlm: amount!.toString(),
-              password: pw,
-              description: params.description ?? undefined,
-              signer,
-              signMessage,
-              payerJurisdiction: params.jurisdiction ?? undefined,
-              onStatus: (msg) => {
-                statusEl.textContent = msg;
+            const { traceId } = startTrace();
+            const result = await withSpan(
+              "pay.selfcustodial_checkout",
+              traceId,
+              () =>
+                executeSelfCustodialPayment({
+                  customerWallet,
+                  merchantWallet: params.merchantWallet,
+                  amountXlm: amount!.toString(),
+                  password: pw,
+                  description: params.description ?? undefined,
+                  signer,
+                  signMessage,
+                  payerJurisdiction: params.jurisdiction ?? undefined,
+                  onStatus: (msg) => {
+                    statusEl.textContent = msg;
+                  },
+                }),
+              undefined,
+              {
+                "merchant.public_key": params.merchantWallet,
+                "customer.public_key": customerWallet,
+                "amount.xlm": amount!.toString(),
               },
-            });
+            );
 
             statusEl.textContent =
               `Payment complete! TX: ${result.transactionId}`;

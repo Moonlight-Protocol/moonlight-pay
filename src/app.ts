@@ -1,6 +1,8 @@
 import { navigate, route, routePrefix, startRouter } from "./lib/router.ts";
 import { isAuthenticated, isMasterSeedReady } from "./lib/wallet.ts";
 import { isPlatformAuthed } from "./lib/api.ts";
+import { initTracer } from "./lib/tracer.ts";
+import { getOtelEndpoint } from "./lib/config.ts";
 
 import { loginView } from "./views/login.ts";
 import { homeView } from "./views/home.ts";
@@ -8,6 +10,12 @@ import { posView } from "./views/pos.ts";
 import { adminView } from "./views/admin.ts";
 import { accountView } from "./views/onboarding/account.ts";
 import { treasuryView } from "./views/onboarding/treasury.ts";
+
+try {
+  initTracer({ endpoint: getOtelEndpoint() });
+} catch {
+  // Config errors will surface from the actual feature path; don't block app load.
+}
 
 route("/login", loginView);
 route("/", homeView);
