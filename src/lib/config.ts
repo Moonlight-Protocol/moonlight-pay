@@ -20,6 +20,7 @@ export interface PayConfig {
   allowlist?: string[];
   adminWallets?: string[];
   otelEndpoint?: string;
+  otelAuth?: string;
 }
 
 export type StellarNetwork = "testnet" | "mainnet" | "standalone";
@@ -30,6 +31,7 @@ interface ResolvedConfig {
   payPlatformUrl: string;
   rpcUrl: string;
   otelEndpoint: string;
+  otelAuth: string;
 }
 
 let cached: ResolvedConfig | null = null;
@@ -57,6 +59,7 @@ function readConfig(): ResolvedConfig {
     payPlatformUrl: cfg.payPlatformUrl,
     rpcUrl: cfg.rpcUrl ?? "https://soroban-testnet.stellar.org",
     otelEndpoint: cfg.otelEndpoint ?? "",
+    otelAuth: cfg.otelAuth ?? "",
   };
   return cached;
 }
@@ -88,6 +91,10 @@ export function getRpcUrl(): string {
 
 export function getOtelEndpoint(): string {
   return readConfig().otelEndpoint;
+}
+
+export function getOtelAuth(): string {
+  return readConfig().otelAuth;
 }
 
 export function getNetworkPassphrase(): string {
