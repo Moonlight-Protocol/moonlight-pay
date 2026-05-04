@@ -114,6 +114,6 @@ export async function initMasterSeed(): Promise<void> {
   const adopted = await requestSeedFromOtherTabs();
   if (adopted && isMasterSeedReady()) return;
 
-  const signature = await signMessage("Moonlight: authorize master key");
+  const signature = await signMessage("Moonlight: Derive server key");
   await deriveMasterSeedFromSignature(signature);
 }
