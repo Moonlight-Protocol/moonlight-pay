@@ -84,7 +84,8 @@ jobs:
           cat > public/config.js << EOF
           window.__PAY_CONFIG__ = {
             environment: "production",
-            stellarNetwork: "testnet",
+            stellarNetwork: "${{ secrets.MAINNET_STELLAR_NETWORK }}",
+            rpcUrl: "${{ secrets.MAINNET_RPC_URL }}",
             payPlatformUrl: "${{ secrets.MAINNET_PAY_PLATFORM_URL }}",
             allowlist: $ALLOWLIST,
             otelEndpoint: "${{ secrets.MAINNET_OTEL_ENDPOINT }}",
