@@ -29,6 +29,12 @@ jobs:
   deploy:
     needs: verify
     runs-on: ubuntu-latest
+    env:
+      STELLAR_NETWORK: '${{ secrets.STELLAR_NETWORK }}'
+      PAY_PLATFORM_URL: '${{ secrets.PAY_PLATFORM_URL }}'
+      OTEL_ENDPOINT: '${{ secrets.OTEL_ENDPOINT }}'
+      OTEL_AUTH: '${{ secrets.OTEL_AUTH }}'
+      ALLOWLIST: '${{ secrets.ALLOWLIST || ''["*"]'' }}'
     steps:
       - uses: actions/checkout@v4
 
@@ -36,18 +42,45 @@ jobs:
         with:
           deno-version: ${{ env.DENO_VERSION }}
 
+      - name: Validate testnet config inputs
+        run: |
+          set -euo pipefail
+          for var in STELLAR_NETWORK PAY_PLATFORM_URL OTEL_ENDPOINT OTEL_AUTH ALLOWLIST; do
+            if [ -z "${!var}" ]; then
+              echo "::error::Required env var $var is empty"
+              exit 1
+            fi
+          done
+          case "$STELLAR_NETWORK" in
+            testnet|mainnet) ;;
+            *) echo "::error::STELLAR_NETWORK must be 'testnet' or 'mainnet' (got: $STELLAR_NETWORK)"; exit 1 ;;
+          esac
+          for var in PAY_PLATFORM_URL OTEL_ENDPOINT; do
+            val="${!var}"
+            case "$val" in
+              https://*) ;;
+              *) echo "::error::$var must start with https:// (got: $val)"; exit 1 ;;
+            esac
+          done
+          case "$ALLOWLIST" in
+            \[*\]) ;;
+            *) echo "::error::ALLOWLIST is not a JSON array (got: $ALLOWLIST)"; exit 1 ;;
+          esac
+          case "$OTEL_AUTH" in
+            "Basic "*) ;;
+            *) echo "::error::OTEL_AUTH must start with 'Basic ' (got prefix: ${OTEL_AUTH:0:6})"; exit 1 ;;
+          esac
+
       - name: Generate production config
-        env:
-          ALLOWLIST: ${{ secrets.ALLOWLIST || '["*"]' }}
         run: |
           cat > public/config.js << EOF
           window.__PAY_CONFIG__ = {
             environment: "production",
-            stellarNetwork: "${{ secrets.STELLAR_NETWORK }}",
-            payPlatformUrl: "${{ secrets.PAY_PLATFORM_URL }}",
+            stellarNetwork: "$STELLAR_NETWORK",
+            payPlatformUrl: "$PAY_PLATFORM_URL",
             allowlist: $ALLOWLIST,
-            otelEndpoint: "${{ secrets.OTEL_ENDPOINT }}",
-            otelAuth: "${{ secrets.OTEL_AUTH }}",
+            otelEndpoint: "$OTEL_ENDPOINT",
+            otelAuth: "$OTEL_AUTH",
           };
           EOF
 
@@ -56,8 +89,8 @@ jobs:
 
       - name: Deploy to Tigris (testnet)
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.TIGRIS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.TIGRIS_SECRET_ACCESS_KEY }}
+          AWS_ACCESS_KEY_ID: '${{ secrets.TIGRIS_ACCESS_KEY_ID }}'
+          AWS_SECRET_ACCESS_KEY: '${{ secrets.TIGRIS_SECRET_ACCESS_KEY }}'
           AWS_REGION: auto
         run: |
           aws s3 sync public/ s3://moonlight-pay-app/ \
@@ -70,6 +103,13 @@ jobs:
     needs: verify
     runs-on: ubuntu-latest
     environment: mainnet
+    env:
+      STELLAR_NETWORK: '${{ secrets.MAINNET_STELLAR_NETWORK }}'
+      RPC_URL: '${{ secrets.MAINNET_RPC_URL }}'
+      PAY_PLATFORM_URL: '${{ secrets.MAINNET_PAY_PLATFORM_URL }}'
+      OTEL_ENDPOINT: '${{ secrets.MAINNET_OTEL_ENDPOINT }}'
+      OTEL_AUTH: '${{ secrets.MAINNET_OTEL_AUTH }}'
+      ALLOWLIST: '${{ secrets.MAINNET_ALLOWLIST || ''["*"]'' }}'
     steps:
       - uses: actions/checkout@v4
 
@@ -77,19 +117,46 @@ jobs:
         with:
           deno-version: ${{ env.DENO_VERSION }}
 
+      - name: Validate mainnet config inputs
+        run: |
+          set -euo pipefail
+          for var in STELLAR_NETWORK RPC_URL PAY_PLATFORM_URL OTEL_ENDPOINT OTEL_AUTH ALLOWLIST; do
+            if [ -z "${!var}" ]; then
+              echo "::error::Required env var $var is empty"
+              exit 1
+            fi
+          done
+          case "$STELLAR_NETWORK" in
+            testnet|mainnet) ;;
+            *) echo "::error::STELLAR_NETWORK must be 'testnet' or 'mainnet' (got: $STELLAR_NETWORK)"; exit 1 ;;
+          esac
+          for var in RPC_URL PAY_PLATFORM_URL OTEL_ENDPOINT; do
+            val="${!var}"
+            case "$val" in
+              https://*) ;;
+              *) echo "::error::$var must start with https:// (got: $val)"; exit 1 ;;
+            esac
+          done
+          case "$ALLOWLIST" in
+            \[*\]) ;;
+            *) echo "::error::ALLOWLIST is not a JSON array (got: $ALLOWLIST)"; exit 1 ;;
+          esac
+          case "$OTEL_AUTH" in
+            "Basic "*) ;;
+            *) echo "::error::OTEL_AUTH must start with 'Basic ' (got prefix: ${OTEL_AUTH:0:6})"; exit 1 ;;
+          esac
+
       - name: Generate mainnet config
-        env:
-          ALLOWLIST: ${{ secrets.MAINNET_ALLOWLIST || '["*"]' }}
         run: |
           cat > public/config.js << EOF
           window.__PAY_CONFIG__ = {
             environment: "production",
-            stellarNetwork: "${{ secrets.MAINNET_STELLAR_NETWORK }}",
-            rpcUrl: "${{ secrets.MAINNET_RPC_URL }}",
-            payPlatformUrl: "${{ secrets.MAINNET_PAY_PLATFORM_URL }}",
+            stellarNetwork: "$STELLAR_NETWORK",
+            rpcUrl: "$RPC_URL",
+            payPlatformUrl: "$PAY_PLATFORM_URL",
             allowlist: $ALLOWLIST,
-            otelEndpoint: "${{ secrets.MAINNET_OTEL_ENDPOINT }}",
-            otelAuth: "${{ secrets.MAINNET_OTEL_AUTH }}",
+            otelEndpoint: "$OTEL_ENDPOINT",
+            otelAuth: "$OTEL_AUTH",
           };
           EOF
 
@@ -98,8 +165,8 @@ jobs:
 
       - name: Deploy to Tigris (mainnet)
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.MAINNET_TIGRIS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.MAINNET_TIGRIS_SECRET_ACCESS_KEY }}
+          AWS_ACCESS_KEY_ID: '${{ secrets.MAINNET_TIGRIS_ACCESS_KEY_ID }}'
+          AWS_SECRET_ACCESS_KEY: '${{ secrets.MAINNET_TIGRIS_SECRET_ACCESS_KEY }}'
           AWS_REGION: auto
         run: |
           aws s3 sync public/ s3://mainnet-moonlight-pay/ \
