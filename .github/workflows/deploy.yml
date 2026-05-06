@@ -35,6 +35,7 @@ jobs:
       OTEL_ENDPOINT: '${{ secrets.OTEL_ENDPOINT }}'
       OTEL_AUTH: '${{ secrets.OTEL_AUTH }}'
       ALLOWLIST: '${{ secrets.ALLOWLIST || ''["*"]'' }}'
+      ADMIN_WALLETS: '${{ secrets.ADMIN_WALLETS }}'
     steps:
       - uses: actions/checkout@v4
 
@@ -45,7 +46,7 @@ jobs:
       - name: Validate testnet config inputs
         run: |
           set -euo pipefail
-          for var in STELLAR_NETWORK PAY_PLATFORM_URL OTEL_ENDPOINT OTEL_AUTH ALLOWLIST; do
+          for var in STELLAR_NETWORK PAY_PLATFORM_URL OTEL_ENDPOINT OTEL_AUTH ALLOWLIST ADMIN_WALLETS; do
             if [ -z "${!var}" ]; then
               echo "::error::Required env var $var is empty"
               exit 1
@@ -62,10 +63,13 @@ jobs:
               *) echo "::error::$var must start with https:// (got: $val)"; exit 1 ;;
             esac
           done
-          case "$ALLOWLIST" in
-            \[*\]) ;;
-            *) echo "::error::ALLOWLIST is not a JSON array (got: $ALLOWLIST)"; exit 1 ;;
-          esac
+          for var in ALLOWLIST ADMIN_WALLETS; do
+            val="${!var}"
+            case "$val" in
+              \[*\]) ;;
+              *) echo "::error::$var is not a JSON array (got: $val)"; exit 1 ;;
+            esac
+          done
           case "$OTEL_AUTH" in
             "Basic "*) ;;
             *) echo "::error::OTEL_AUTH must start with 'Basic ' (got prefix: ${OTEL_AUTH:0:6})"; exit 1 ;;
@@ -79,6 +83,7 @@ jobs:
             stellarNetwork: "$STELLAR_NETWORK",
             payPlatformUrl: "$PAY_PLATFORM_URL",
             allowlist: $ALLOWLIST,
+            adminWallets: $ADMIN_WALLETS,
             otelEndpoint: "$OTEL_ENDPOINT",
             otelAuth: "$OTEL_AUTH",
           };
@@ -110,6 +115,7 @@ jobs:
       OTEL_ENDPOINT: '${{ secrets.MAINNET_OTEL_ENDPOINT }}'
       OTEL_AUTH: '${{ secrets.MAINNET_OTEL_AUTH }}'
       ALLOWLIST: '${{ secrets.MAINNET_ALLOWLIST || ''["*"]'' }}'
+      ADMIN_WALLETS: '${{ secrets.MAINNET_ADMIN_WALLETS }}'
     steps:
       - uses: actions/checkout@v4
 
@@ -120,7 +126,7 @@ jobs:
       - name: Validate mainnet config inputs
         run: |
           set -euo pipefail
-          for var in STELLAR_NETWORK RPC_URL PAY_PLATFORM_URL OTEL_ENDPOINT OTEL_AUTH ALLOWLIST; do
+          for var in STELLAR_NETWORK RPC_URL PAY_PLATFORM_URL OTEL_ENDPOINT OTEL_AUTH ALLOWLIST ADMIN_WALLETS; do
             if [ -z "${!var}" ]; then
               echo "::error::Required env var $var is empty"
               exit 1
@@ -137,10 +143,13 @@ jobs:
               *) echo "::error::$var must start with https:// (got: $val)"; exit 1 ;;
             esac
           done
-          case "$ALLOWLIST" in
-            \[*\]) ;;
-            *) echo "::error::ALLOWLIST is not a JSON array (got: $ALLOWLIST)"; exit 1 ;;
-          esac
+          for var in ALLOWLIST ADMIN_WALLETS; do
+            val="${!var}"
+            case "$val" in
+              \[*\]) ;;
+              *) echo "::error::$var is not a JSON array (got: $val)"; exit 1 ;;
+            esac
+          done
           case "$OTEL_AUTH" in
             "Basic "*) ;;
             *) echo "::error::OTEL_AUTH must start with 'Basic ' (got prefix: ${OTEL_AUTH:0:6})"; exit 1 ;;
@@ -155,6 +164,7 @@ jobs:
             rpcUrl: "$RPC_URL",
             payPlatformUrl: "$PAY_PLATFORM_URL",
             allowlist: $ALLOWLIST,
+            adminWallets: $ADMIN_WALLETS,
             otelEndpoint: "$OTEL_ENDPOINT",
             otelAuth: "$OTEL_AUTH",
           };
