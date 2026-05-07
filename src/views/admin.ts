@@ -10,6 +10,7 @@
  *   - wallet connected, in adminWallets → admin UI
  */
 import {
+  clearSession,
   connectWallet,
   getConnectedAddress,
   signMessage,
@@ -30,6 +31,7 @@ import {
   adminUpdateCouncil,
   adminUpdatePp,
   authenticate,
+  clearPlatformAuth,
   isPlatformAuthed,
 } from "../lib/api.ts";
 
@@ -47,8 +49,7 @@ async function renderByAuthState(container: HTMLElement): Promise<void> {
     return;
   }
   if (!isAdmin(address)) {
-    container.innerHTML =
-      `<div class="login-card"><h2>Access Denied</h2><p>Your wallet is not authorized for admin access.</p><a href="#/">Back</a></div>`;
+    renderAccessDenied(container);
     return;
   }
   if (!isPlatformAuthed()) {
@@ -70,6 +71,27 @@ async function renderByAuthState(container: HTMLElement): Promise<void> {
   `;
 
   await renderCouncilList(container.querySelector("#admin-content")!);
+}
+
+function renderAccessDenied(container: HTMLElement): void {
+  container.innerHTML = `
+    <div class="login-card">
+      <h2>Access Denied</h2>
+      <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:1.5rem">
+        Your wallet is not authorized for admin access.
+      </p>
+      <button id="admin-disconnect-btn" class="btn-primary btn-wide">Disconnect &amp; Try Another Wallet</button>
+    </div>
+  `;
+
+  const btn = container.querySelector(
+    "#admin-disconnect-btn",
+  ) as HTMLButtonElement;
+  btn.addEventListener("click", async () => {
+    clearSession();
+    clearPlatformAuth();
+    await renderByAuthState(container);
+  });
 }
 
 function renderConnectPrompt(container: HTMLElement): void {
