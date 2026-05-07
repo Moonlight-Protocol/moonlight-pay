@@ -9,7 +9,11 @@
  *   - wallet connected, not in adminWallets → "Access Denied" (unauthorized)
  *   - wallet connected, in adminWallets → admin UI
  */
-import { connectWallet, getConnectedAddress } from "../lib/wallet.ts";
+import {
+  connectWallet,
+  getConnectedAddress,
+  signMessage,
+} from "../lib/wallet.ts";
 import { isAdmin } from "../lib/config.ts";
 import { escapeHtml, friendlyError } from "../lib/dom.ts";
 import {
@@ -25,6 +29,8 @@ import {
   adminListCouncils,
   adminUpdateCouncil,
   adminUpdatePp,
+  authenticate,
+  isPlatformAuthed,
 } from "../lib/api.ts";
 
 export async function adminView(): Promise<HTMLElement> {
@@ -43,6 +49,10 @@ async function renderByAuthState(container: HTMLElement): Promise<void> {
   if (!isAdmin(address)) {
     container.innerHTML =
       `<div class="login-card"><h2>Access Denied</h2><p>Your wallet is not authorized for admin access.</p><a href="#/">Back</a></div>`;
+    return;
+  }
+  if (!isPlatformAuthed()) {
+    renderConnectPrompt(container);
     return;
   }
 
@@ -86,7 +96,11 @@ function renderConnectPrompt(container: HTMLElement): void {
     btn.textContent = "Connecting...";
     errorEl.hidden = true;
     try {
-      await connectWallet();
+      const address = await connectWallet();
+      if (isAdmin(address)) {
+        btn.textContent = "Authenticating...";
+        await authenticate({ publicKey: address, sign: signMessage });
+      }
       await renderByAuthState(container);
     } catch (err) {
       btn.disabled = false;

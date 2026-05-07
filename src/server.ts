@@ -36,6 +36,8 @@ function getCSP(): string {
     "https://horizon-testnet.stellar.org",
     "https://friendbot.stellar.org",
     "https://moonlight-beta-pay-platform.fly.dev",
+    "https://pay-api-testnet.moonlightprotocol.io",
+    "https://pay-api-mainnet.moonlightprotocol.io",
   ];
 
   // In development, allow connections to local services
@@ -52,6 +54,7 @@ function getCSP(): string {
     "default-src 'self'",
     "script-src 'self'",
     "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: https://stellar.creit.tech",
     `connect-src ${connectSrc.join(" ")}`,
   ].join("; ");
 }
