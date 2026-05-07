@@ -3,8 +3,13 @@
  *
  * Route: /#/admin
  * Access: wallet must be in config.adminWallets.
+ *
+ * Three render states:
+ *   - no wallet connected → connect-wallet prompt (unauthenticated)
+ *   - wallet connected, not in adminWallets → "Access Denied" (unauthorized)
+ *   - wallet connected, in adminWallets → admin UI
  */
-import { getConnectedAddress } from "../lib/wallet.ts";
+import { connectWallet, getConnectedAddress } from "../lib/wallet.ts";
 import { isAdmin } from "../lib/config.ts";
 import { escapeHtml, friendlyError } from "../lib/dom.ts";
 import {
@@ -25,12 +30,20 @@ import {
 export async function adminView(): Promise<HTMLElement> {
   const container = document.createElement("div");
   container.className = "admin-container";
+  await renderByAuthState(container);
+  return container;
+}
 
+async function renderByAuthState(container: HTMLElement): Promise<void> {
   const address = getConnectedAddress();
-  if (!address || !isAdmin(address)) {
+  if (!address) {
+    renderConnectPrompt(container);
+    return;
+  }
+  if (!isAdmin(address)) {
     container.innerHTML =
       `<div class="login-card"><h2>Access Denied</h2><p>Your wallet is not authorized for admin access.</p><a href="#/">Back</a></div>`;
-    return container;
+    return;
   }
 
   container.innerHTML = `
@@ -47,7 +60,41 @@ export async function adminView(): Promise<HTMLElement> {
   `;
 
   await renderCouncilList(container.querySelector("#admin-content")!);
-  return container;
+}
+
+function renderConnectPrompt(container: HTMLElement): void {
+  container.innerHTML = `
+    <div class="login-card">
+      <h2>Connect Wallet</h2>
+      <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:1.5rem">
+        Connect your Stellar wallet to access the admin panel.
+      </p>
+      <button id="admin-connect-btn" class="btn-primary btn-wide">Connect Wallet</button>
+      <p id="admin-connect-error" class="error-text" hidden></p>
+    </div>
+  `;
+
+  const btn = container.querySelector(
+    "#admin-connect-btn",
+  ) as HTMLButtonElement;
+  const errorEl = container.querySelector(
+    "#admin-connect-error",
+  ) as HTMLParagraphElement;
+
+  btn.addEventListener("click", async () => {
+    btn.disabled = true;
+    btn.textContent = "Connecting...";
+    errorEl.hidden = true;
+    try {
+      await connectWallet();
+      await renderByAuthState(container);
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = "Connect Wallet";
+      errorEl.hidden = false;
+      errorEl.textContent = friendlyError(err);
+    }
+  });
 }
 
 async function renderCouncilList(target: Element): Promise<void> {
