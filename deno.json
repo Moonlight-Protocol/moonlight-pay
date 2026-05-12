@@ -1,6 +1,6 @@
 {
   "name": "@moonlight-protocol/moonlight-pay",
-  "version": "0.5.15",
+  "version": "0.5.16",
   "license": "MIT",
   "tasks": {
     "dev": "MODE=development PORT=3050 deno run --allow-net --allow-read --allow-env --watch src/server.ts",
@@ -33,6 +33,10 @@
     "@noble/curves": "jsr:@noble/curves@^1.8.0",
     "stellar-sdk": "npm:@stellar/stellar-sdk@^15.0.1",
     "npm:@stellar/stellar-sdk": "npm:@stellar/stellar-sdk@^15.0.1",
-    "buffer": "npm:buffer@^6.0.3"
+    "buffer": "npm:buffer@^6.0.3",
+    "@moonlight/ui/layout": "https://raw.githubusercontent.com/Moonlight-Protocol/ui/v0.3.1/src/layout/mod.ts",
+    "@moonlight/ui/nav": "https://raw.githubusercontent.com/Moonlight-Protocol/ui/v0.3.1/src/nav/mod.ts",
+    "@moonlight/ui/stepper": "https://raw.githubusercontent.com/Moonlight-Protocol/ui/v0.3.1/src/stepper/mod.ts",
+    "@moonlight/ui/invite-waitlist": "https://raw.githubusercontent.com/Moonlight-Protocol/ui/v0.3.1/src/invite-waitlist/mod.ts"
   }
 }

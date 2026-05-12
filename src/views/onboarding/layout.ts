@@ -1,3 +1,4 @@
+import { renderStepper } from "@moonlight/ui/stepper";
 import { getConnectedAddress, isAuthenticated } from "../../lib/wallet.ts";
 import { isPlatformAuthed } from "../../lib/api.ts";
 import { isAllowed } from "../../lib/config.ts";
@@ -25,41 +26,14 @@ export function onboardingPage(
 
     const inner = document.createElement("div");
 
-    // Stepper — above the card
-    const stepper = document.createElement("div");
-    stepper.className = "onboarding-stepper";
-
-    const currentIdx = ONBOARDING_STEPS.findIndex((s) => s.id === currentStep);
-
-    for (let i = 0; i < ONBOARDING_STEPS.length; i++) {
-      const step = ONBOARDING_STEPS[i];
-      const stepEl = document.createElement("div");
-      stepEl.className = "onboarding-step";
-      if (i < currentIdx) stepEl.classList.add("done");
-      if (i === currentIdx) stepEl.classList.add("active");
-
-      const dot = document.createElement("span");
-      dot.className = "step-dot";
-      dot.textContent = i < currentIdx ? "\u2713" : String(i + 1);
-
-      const label = document.createElement("span");
-      label.className = "step-label";
-      label.textContent = step.label;
-
-      stepEl.append(dot, label);
-      stepper.appendChild(stepEl);
-
-      if (i < ONBOARDING_STEPS.length - 1) {
-        const line = document.createElement("div");
-        line.className = "step-line";
-        if (i < currentIdx) line.classList.add("done");
-        stepper.appendChild(line);
-      }
-    }
-
+    // Stepper above the card.
+    const stepper = renderStepper({
+      steps: ONBOARDING_STEPS,
+      currentStepId: currentStep,
+    });
     inner.appendChild(stepper);
 
-    // Card with step content
+    // Card with step content.
     const card = document.createElement("div");
     card.className = "login-card";
 

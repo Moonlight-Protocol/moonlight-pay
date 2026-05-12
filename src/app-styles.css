@@ -1,0 +1,323 @@
+/*
+ * App-specific styles for moonlight-pay.
+ *
+ * Tokens + base-styles + nav + stepper now come from @moonlight/ui at the
+ * pinned tag — fetched and concatenated into public/styles.css by src/build.ts.
+ * This file contains ONLY selectors the lib does not ship.
+ */
+
+/* Tables */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+}
+
+th, td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+th.text-right, td.text-right {
+  text-align: right !important;
+}
+th.text-center, td.text-center {
+  text-align: center !important;
+}
+th.text-left, td.text-left {
+  text-align: left !important;
+}
+
+th {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* File input variant — lib's .form-group input rule uses monospace; file
+   inputs need sans-serif and tighter padding. */
+.form-group input[type="file"] {
+  font-family: var(--font-sans);
+  padding: 0.5rem;
+}
+
+/* Deploy steps */
+.deploy-step {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  border-left: 3px solid var(--border);
+  margin-bottom: 0.25rem;
+}
+
+.deploy-step-active {
+  color: var(--text);
+  border-left-color: var(--primary);
+}
+
+.deploy-step-done {
+  color: var(--active);
+  border-left-color: var(--active);
+}
+
+.deploy-step-done::before {
+  content: "\2713 ";
+}
+
+.deploy-step-error {
+  color: var(--inactive);
+  border-left-color: var(--inactive);
+}
+
+.deploy-step-error::before {
+  content: "\2717 ";
+}
+
+.version-badge {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--border);
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  vertical-align: middle;
+}
+
+/* Jurisdiction picker */
+.jurisdiction-picker {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.jurisdiction-list {
+  padding: 0.25rem 0;
+}
+
+.jurisdiction-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  color: var(--text);
+}
+
+.jurisdiction-option:hover {
+  background: var(--surface);
+}
+.jurisdiction-option.selected {
+  background: var(--surface);
+  color: var(--active);
+}
+
+.jurisdiction-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+.jurisdiction-tag {
+  display: inline-flex;
+  align-items: center;
+  background: var(--border);
+  color: var(--text);
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+}
+
+/* Asset badges */
+.asset-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.5rem 0.3rem 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.asset-remove {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0 0.15rem;
+  border-radius: 50%;
+}
+
+.asset-remove:hover {
+  color: var(--inactive);
+}
+
+/* Inline edit */
+.inline-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  border-radius: 4px;
+  position: relative;
+}
+
+.inline-edit[data-field="description"] {
+  display: flex;
+  width: 100%;
+}
+
+.inline-edit .edit-icon {
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+
+.inline-edit:hover .edit-icon {
+  opacity: 1;
+}
+
+.inline-edit-input {
+  background: var(--bg);
+  border: 1px solid var(--primary);
+  border-radius: 4px;
+  color: var(--text);
+  font-family: var(--font-sans);
+  padding: 0.2rem 0.4rem;
+  outline: none;
+}
+
+.inline-edit-input.edit-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.inline-edit-input.edit-email {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.inline-edit-input.edit-description {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  width: 100%;
+}
+
+/* List items */
+.list-item {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+
+.list-item:last-child {
+  border-bottom: none;
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal-overlay[hidden] {
+  display: none;
+}
+
+.modal-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: start;
+  margin-bottom: 1rem;
+}
+
+.modal {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  width: 90%;
+  max-width: 460px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+/* Jurisdiction map */
+.jurisdiction-map {
+  margin: 1rem 0;
+  border-radius: 8px;
+  height: 400px;
+  overflow: hidden;
+}
+
+.jurisdiction-map svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+/* Page header */
+.page-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+}
+
+/* Council detail header */
+.council-header {
+  display: grid;
+  grid-template-columns: auto auto auto 1fr auto;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.council-header h2 {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.council-header .header-icons {
+  display: flex;
+  gap: 0.25rem;
+  justify-self: end;
+}
+
+/* Icon button variant for 'Remove from console' — lib ships .icon-btn,
+   this is the hover-color override for the destructive variant. */
+.icon-btn[title="Remove from console"]:hover {
+  color: var(--inactive);
+}
+
+/* Balance warning */
+.balance-warning {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid var(--pending);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  font-size: 0.85rem;
+  color: var(--text);
+  margin-bottom: 1.5rem;
+}
