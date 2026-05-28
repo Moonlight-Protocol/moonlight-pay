@@ -38,6 +38,7 @@ function getCSP(): string {
     "https://moonlight-beta-pay-platform.fly.dev",
     "https://pay-api-testnet.moonlightprotocol.io",
     "https://pay-api-mainnet.moonlightprotocol.io",
+    "https://us.i.posthog.com",
   ];
 
   // In development, allow connections to local services
@@ -52,7 +53,7 @@ function getCSP(): string {
 
   return [
     "default-src 'self'",
-    "script-src 'self'",
+    "script-src 'self' https://us-assets.i.posthog.com",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https://stellar.creit.tech",
     `connect-src ${connectSrc.join(" ")}`,

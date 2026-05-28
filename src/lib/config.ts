@@ -21,6 +21,8 @@ export interface PayConfig {
   adminWallets?: string[];
   otelEndpoint?: string;
   otelAuth?: string;
+  posthogKey?: string;
+  posthogHost?: string;
 }
 
 export type StellarNetwork = "testnet" | "mainnet" | "standalone";

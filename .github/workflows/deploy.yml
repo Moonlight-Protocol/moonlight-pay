@@ -36,6 +36,7 @@ jobs:
       OTEL_AUTH: '${{ secrets.OTEL_AUTH }}'
       ALLOWLIST: '${{ secrets.ALLOWLIST || ''["*"]'' }}'
       ADMIN_WALLETS: '${{ secrets.ADMIN_WALLETS }}'
+      POSTHOG_KEY: '${{ secrets.POSTHOG_PROJECT_TOKEN }}'
     steps:
       - uses: actions/checkout@v4
 
@@ -46,7 +47,7 @@ jobs:
       - name: Validate testnet config inputs
         run: |
           set -euo pipefail
-          for var in STELLAR_NETWORK PAY_PLATFORM_URL OTEL_ENDPOINT OTEL_AUTH ALLOWLIST ADMIN_WALLETS; do
+          for var in STELLAR_NETWORK PAY_PLATFORM_URL OTEL_ENDPOINT OTEL_AUTH ALLOWLIST ADMIN_WALLETS POSTHOG_KEY; do
             if [ -z "${!var}" ]; then
               echo "::error::Required env var $var is empty"
               exit 1
@@ -86,11 +87,22 @@ jobs:
             adminWallets: $ADMIN_WALLETS,
             otelEndpoint: "$OTEL_ENDPOINT",
             otelAuth: "$OTEL_AUTH",
+            posthogKey: "$POSTHOG_KEY",
+            posthogHost: "https://us.i.posthog.com",
           };
           EOF
 
       - name: Build production bundle
         run: deno task build -- --production
+
+      - name: Upload source maps to PostHog
+        env:
+          POSTHOG_CLI_API_KEY: '${{ secrets.POSTHOG_CLI_API_KEY }}'
+          POSTHOG_CLI_PROJECT_ID: '345524'
+          POSTHOG_CLI_HOST: 'https://us.posthog.com'
+        run: |
+          npx --yes @posthog/cli sourcemap inject --directory public/
+          npx --yes @posthog/cli sourcemap upload --directory public/
 
       - name: Deploy to Tigris (testnet)
         env:
@@ -102,6 +114,7 @@ jobs:
             --endpoint-url https://fly.storage.tigris.dev \
             --acl public-read \
             --delete \
+            --exclude "*.map" \
             --no-progress
 
   deploy-mainnet:
@@ -116,6 +129,7 @@ jobs:
       OTEL_AUTH: '${{ secrets.MAINNET_OTEL_AUTH }}'
       ALLOWLIST: '${{ secrets.MAINNET_ALLOWLIST || ''["*"]'' }}'
       ADMIN_WALLETS: '${{ secrets.MAINNET_ADMIN_WALLETS }}'
+      POSTHOG_KEY: '${{ secrets.POSTHOG_PROJECT_TOKEN }}'
     steps:
       - uses: actions/checkout@v4
 
@@ -126,7 +140,7 @@ jobs:
       - name: Validate mainnet config inputs
         run: |
           set -euo pipefail
-          for var in STELLAR_NETWORK RPC_URL PAY_PLATFORM_URL OTEL_ENDPOINT OTEL_AUTH ALLOWLIST ADMIN_WALLETS; do
+          for var in STELLAR_NETWORK RPC_URL PAY_PLATFORM_URL OTEL_ENDPOINT OTEL_AUTH ALLOWLIST ADMIN_WALLETS POSTHOG_KEY; do
             if [ -z "${!var}" ]; then
               echo "::error::Required env var $var is empty"
               exit 1
@@ -167,11 +181,22 @@ jobs:
             adminWallets: $ADMIN_WALLETS,
             otelEndpoint: "$OTEL_ENDPOINT",
             otelAuth: "$OTEL_AUTH",
+            posthogKey: "$POSTHOG_KEY",
+            posthogHost: "https://us.i.posthog.com",
           };
           EOF
 
       - name: Build production bundle
         run: deno task build -- --production
+
+      - name: Upload source maps to PostHog
+        env:
+          POSTHOG_CLI_API_KEY: '${{ secrets.POSTHOG_CLI_API_KEY }}'
+          POSTHOG_CLI_PROJECT_ID: '345524'
+          POSTHOG_CLI_HOST: 'https://us.posthog.com'
+        run: |
+          npx --yes @posthog/cli sourcemap inject --directory public/
+          npx --yes @posthog/cli sourcemap upload --directory public/
 
       - name: Deploy to Tigris (mainnet)
         env:
@@ -183,4 +208,5 @@ jobs:
             --endpoint-url https://fly.storage.tigris.dev \
             --acl public-read \
             --delete \
+            --exclude "*.map" \
             --no-progress
