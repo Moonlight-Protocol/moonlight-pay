@@ -46,7 +46,6 @@ interface PrepareResult {
     publicKey: string;
   };
   merchantUtxos: Array<{
-    id: string;
     utxoPublicKey: string;
     derivationIndex: number;
   }>;
@@ -272,7 +271,6 @@ export async function executeSelfCustodialPayment(opts: {
       assetCode: channel.assetCode,
       description: description ?? null,
       operationsMLXDR,
-      merchantUtxoIds: merchantUtxos.map((u) => u.id),
     }),
   });
 

@@ -4,6 +4,7 @@
  */
 import { page } from "../components/page.ts";
 import {
+  deleteMyAccount,
   getBalance,
   getMe,
   listTransactions,
@@ -129,6 +130,18 @@ async function renderContent(): Promise<HTMLElement> {
     <div id="tx-section" style="margin-top:1.5rem;max-width:600px">
       <h3>Recent Transactions</h3>
       <div id="tx-list" class="hint-text">Loading...</div>
+    </div>
+
+    <div id="danger-zone" style="margin-top:2rem;max-width:600px;border:1px solid var(--inactive, #c0392b);border-radius:8px;padding:1rem">
+      <h3 style="margin-top:0;color:var(--inactive, #c0392b)">Delete account</h3>
+      <p style="font-size:0.85rem;color:var(--text-muted)">
+        Permanently removes your Moonlight Pay account and the payment log.
+        On-chain UTXOs are NOT touched — if you re-onboard with the same
+        wallet, your balance comes back. This action cannot be undone.
+      </p>
+      <button id="delete-account-btn" class="btn-secondary" style="border-color:var(--inactive, #c0392b);color:var(--inactive, #c0392b)">Delete my account</button>
+      <p id="delete-status" class="hint-text" hidden></p>
+      <p id="delete-error" class="error-text" hidden></p>
     </div>
   `;
 
@@ -265,6 +278,39 @@ async function renderContent(): Promise<HTMLElement> {
       statusEl.hidden = true;
       errorEl.hidden = false;
       errorEl.textContent = friendlyError(err);
+    }
+  });
+
+  const deleteBtn = el.querySelector(
+    "#delete-account-btn",
+  ) as HTMLButtonElement;
+  const deleteStatusEl = el.querySelector(
+    "#delete-status",
+  ) as HTMLParagraphElement;
+  const deleteErrorEl = el.querySelector(
+    "#delete-error",
+  ) as HTMLParagraphElement;
+
+  deleteBtn.addEventListener("click", async () => {
+    const ok = globalThis.confirm(
+      "Delete your Moonlight Pay account?\n\nYour pay-platform record and transaction history will be permanently removed. On-chain UTXOs remain intact.",
+    );
+    if (!ok) return;
+
+    deleteErrorEl.hidden = true;
+    deleteStatusEl.hidden = false;
+    deleteStatusEl.textContent = "Deleting...";
+    deleteBtn.disabled = true;
+
+    try {
+      await deleteMyAccount();
+      clearSession();
+      navigate("/login");
+    } catch (err) {
+      deleteBtn.disabled = false;
+      deleteStatusEl.hidden = true;
+      deleteErrorEl.hidden = false;
+      deleteErrorEl.textContent = friendlyError(err);
     }
   });
 

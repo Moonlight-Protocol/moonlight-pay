@@ -1,8 +1,8 @@
 import { onboardingPage } from "./layout.ts";
 import { navigate } from "../../lib/router.ts";
 import { getConnectedAddress, getMasterSeed } from "../../lib/wallet.ts";
-import { createAccount, getMe, storeReceiveUtxos } from "../../lib/api.ts";
-import { deriveReceiveUtxos } from "../../lib/utxo-derivation.ts";
+import { createAccount, getMe, storeDelegationKey } from "../../lib/api.ts";
+import { computeUtxoRoot } from "../../lib/utxo-derivation.ts";
 import { COUNTRY_CODES } from "../../lib/jurisdictions.ts";
 import { escapeHtml, friendlyError, truncateAddress } from "../../lib/dom.ts";
 import { startTrace, withSpan } from "../../lib/tracer.ts";
@@ -102,15 +102,15 @@ function renderStep(): HTMLElement {
             displayName: displayName || undefined,
           });
 
-          statusEl.textContent = "Generating receive addresses...";
+          statusEl.textContent = "Finalising your account...";
           let seed: Uint8Array;
           try {
             seed = getMasterSeed();
           } catch {
             throw new Error("Master key was lost. Please sign in again.");
           }
-          const utxos = await deriveReceiveUtxos(seed, email);
-          await storeReceiveUtxos(utxos);
+          const utxoRoot = await computeUtxoRoot(seed);
+          await storeDelegationKey(utxoRoot);
         },
         undefined,
         { "account.jurisdiction": jurisdictionCountryCode },
