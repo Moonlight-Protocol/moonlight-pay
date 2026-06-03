@@ -38,7 +38,6 @@ interface PrepareResult {
   };
   opex: {
     publicKey: string | null;
-    feePct: number | null;
   };
   merchantUtxos: Array<{
     utxoPublicKey: string;

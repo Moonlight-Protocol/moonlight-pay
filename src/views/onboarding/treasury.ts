@@ -45,14 +45,6 @@ function renderStep(): HTMLElement {
         </div>
       </div>
 
-      <div class="form-group" style="margin-top:1rem">
-        <label for="opex-fee">Fee (%)</label>
-        <input type="number" id="opex-fee" value="1" min="0" max="100" step="0.01" />
-        <p style="color:var(--text-muted);font-size:0.8rem;margin-top:0.25rem">
-          Percentage kept from each instant payment.
-        </p>
-      </div>
-
       <button id="opex-complete-btn" class="btn-primary btn-wide" disabled style="margin-top:1rem">Complete Setup</button>
     </div>
 
@@ -179,12 +171,6 @@ function renderStep(): HTMLElement {
     errorEl.hidden = true;
 
     try {
-      const feeInput = el.querySelector("#opex-fee") as HTMLInputElement;
-      const feePct = parseFloat(feeInput.value);
-      if (isNaN(feePct) || feePct < 0 || feePct > 100) {
-        throw new Error("Fee must be between 0 and 100");
-      }
-
       const { traceId } = startTrace();
       await withSpan(
         "pay.register_opex",
@@ -193,10 +179,9 @@ function renderStep(): HTMLElement {
           registerOpex({
             secretKey: opexSecretKey,
             publicKey: opexPublicKey,
-            feePct,
           }),
         undefined,
-        { "opex.public_key": opexPublicKey, "opex.fee_pct": feePct },
+        { "opex.public_key": opexPublicKey },
       );
 
       navigate("/");

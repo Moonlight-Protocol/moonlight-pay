@@ -294,7 +294,6 @@ export interface PayAccount {
   jurisdictionCountryCode: string;
   displayName: string | null;
   opexPublicKey: string | null;
-  feePct: number | null;
   lastSeenAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -347,7 +346,6 @@ export async function updateMe(input: UpdateAccountInput): Promise<PayAccount> {
 export async function registerOpex(input: {
   secretKey: string;
   publicKey: string;
-  feePct: number;
 }): Promise<void> {
   const res = await payFetch("/api/v1/account/opex", {
     method: "POST",
