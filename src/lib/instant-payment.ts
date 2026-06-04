@@ -38,10 +38,8 @@ interface PrepareResult {
   };
   opex: {
     publicKey: string | null;
-    feePct: number | null;
   };
   merchantUtxos: Array<{
-    id: string;
     utxoPublicKey: string;
     derivationIndex: number;
   }>;
@@ -135,7 +133,7 @@ export async function executeInstantPayment(opts: {
       amountStroops: prepare.amountStroops,
       assetCode: prepare.channel.assetCode,
       description: description ?? null,
-      merchantUtxoIds: prepare.merchantUtxos.map((u) => u.id),
+      merchantUtxoIndexes: prepare.merchantUtxos.map((u) => u.derivationIndex),
     }),
   });
 

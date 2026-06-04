@@ -95,7 +95,6 @@ const SAMPLE_ACCOUNT: PayAccount = {
   jurisdictionCountryCode: "US",
   displayName: "Alice",
   opexPublicKey: null,
-  feePct: null,
   lastSeenAt: "2026-04-09T12:00:00Z",
   createdAt: "2026-04-09T12:00:00Z",
   updatedAt: "2026-04-09T12:00:00Z",

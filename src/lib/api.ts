@@ -294,7 +294,6 @@ export interface PayAccount {
   jurisdictionCountryCode: string;
   displayName: string | null;
   opexPublicKey: string | null;
-  feePct: number | null;
   lastSeenAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -347,7 +346,6 @@ export async function updateMe(input: UpdateAccountInput): Promise<PayAccount> {
 export async function registerOpex(input: {
   secretKey: string;
   publicKey: string;
-  feePct: number;
 }): Promise<void> {
   const res = await payFetch("/api/v1/account/opex", {
     method: "POST",
@@ -356,20 +354,30 @@ export async function registerOpex(input: {
   if (!res.ok) await throwFromErrorResponse(res, "Register OpEx failed");
 }
 
-// ─── Receive UTXOs ──────────────────────────────────────────
+// ─── Delegation key ─────────────────────────────────────────
 
-export async function storeReceiveUtxos(
-  utxos: Array<{ utxoPublicKey: string; derivationIndex: number }>,
-): Promise<{ count: number }> {
-  const res = await payFetch("/api/v1/utxo/receive", {
+/**
+ * Store the user's UTXO derivation root with pay-platform. The 32-byte
+ * `utxoRoot` is passed in base64 and travels over TLS; pay-platform
+ * encrypts it at rest before persisting.
+ */
+export async function storeDelegationKey(utxoRoot: Uint8Array): Promise<void> {
+  const base64Root = btoa(String.fromCharCode(...utxoRoot));
+  const res = await payFetch("/api/v1/account/delegation-key", {
     method: "POST",
-    body: JSON.stringify({ utxos }),
+    body: JSON.stringify({ utxoRoot: base64Root }),
   });
-  if (!res.ok) await throwFromErrorResponse(res, "Store UTXOs failed");
-  return unwrapData<{ count: number }>(
-    await parseJsonBody(res),
-    "POST /utxo/receive",
-  );
+  if (!res.ok) await throwFromErrorResponse(res, "Store delegation key failed");
+}
+
+// ─── Account deletion ───────────────────────────────────────
+
+export async function deleteMyAccount(): Promise<void> {
+  const res = await payFetch("/api/v1/account/me", { method: "DELETE" });
+  if (!res.ok && res.status !== 204) {
+    await throwFromErrorResponse(res, "Delete account failed");
+  }
+  clearPlatformAuth();
 }
 
 // ─── Transactions ───────────────────────────────────────────
