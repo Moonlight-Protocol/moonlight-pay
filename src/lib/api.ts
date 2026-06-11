@@ -83,7 +83,13 @@ function ensureStorageListener(): void {
   w.addEventListener("storage", storageListener);
 }
 
-function getToken(): string | null {
+/**
+ * The current user JWT, or null if not signed in. Exported so the Soroban RPC
+ * proxy path can authorize the SDK `Server` (it sends this as
+ * `Authorization: Bearer`), keeping the RPC-Pro token server-side on
+ * pay-platform.
+ */
+export function getToken(): string | null {
   ensureStorageListener();
   if (cachedToken === undefined) {
     const storage = getLocalStorage();
