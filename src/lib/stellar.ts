@@ -12,6 +12,7 @@ import {
   getRpcUrl,
   getStellarNetwork,
 } from "./config.ts";
+import { getToken } from "./api.ts";
 
 // ─── Lazy-loaded SDK types ─────────────────────────────────────
 // Keep everything behind dynamic import so the module can be imported
@@ -33,7 +34,7 @@ interface StellarSdkSubset {
   rpc: {
     Server: new (
       url: string,
-      opts?: { allowHttp?: boolean },
+      opts?: { allowHttp?: boolean; headers?: Record<string, string> },
     ) => RpcServer;
     assembleTransaction(
       tx: Transaction,
@@ -78,7 +79,15 @@ async function sdk(): Promise<StellarSdkSubset> {
 export async function getRpcServer(): Promise<RpcServer> {
   const s = await sdk();
   const url = getRpcUrl();
-  return new s.rpc.Server(url, { allowHttp: url.startsWith("http://") });
+  // `url` points at pay-platform's `/api/v1/rpc` passthrough proxy (set via
+  // pay config), not the raw RPC. The proxy is JWT-gated, so the SDK Server
+  // sends the user JWT on every RPC call; the RPC-Pro token stays server-side
+  // and never enters the bundle.
+  const token = getToken();
+  return new s.rpc.Server(url, {
+    allowHttp: url.startsWith("http://"),
+    ...(token ? { headers: { Authorization: `Bearer ${token}` } } : {}),
+  });
 }
 
 // ─── Deposit ───────────────────────────────────────────────────
