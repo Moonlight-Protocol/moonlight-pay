@@ -120,7 +120,7 @@
         "idb-keyval",
         "ox@0.6.9_typescript@6.0.3",
         "preact@10.24.2",
-        "viem@2.52.2_typescript@6.0.3_zod@3.22.4",
+        "viem@2.52.2_typescript@6.0.3_zod@3.25.76",
         "zustand"
       ]
     },
@@ -662,7 +662,7 @@
         "@reown/appkit-wallet",
         "@walletconnect/universal-provider",
         "valtio",
-        "viem@2.52.2_typescript@6.0.3_zod@3.22.4"
+        "viem@2.52.2_typescript@6.0.3_zod@3.25.76"
       ]
     },
     "@reown/appkit-pay@1.8.19_@types+react@19.2.17_fastestsmallesttextencoderdecoder@1.0.22_typescript@6.0.3": {
@@ -716,7 +716,7 @@
         "@walletconnect/logger@3.0.2",
         "@walletconnect/universal-provider",
         "valtio",
-        "viem@2.52.2_typescript@6.0.3_zod@3.22.4"
+        "viem@2.52.2_typescript@6.0.3_zod@3.25.76"
       ],
       "optionalDependencies": [
         "@base-org/account",
@@ -748,7 +748,7 @@
         "bs58@6.0.0",
         "semver@7.7.2",
         "valtio",
-        "viem@2.52.2_typescript@6.0.3_zod@3.22.4"
+        "viem@2.52.2_typescript@6.0.3_zod@3.25.76"
       ],
       "optionalDependencies": [
         "@lit/react"
@@ -766,7 +766,7 @@
       "integrity": "sha512-N5p/ulfnnA2Pi2M3YeWjULeWbjo7ei22JwU/IXnhoHzKq3pYCN6ynL9mJBOlvDVv892EgLPCWCOwQk/uBT2v0Q==",
       "dependencies": [
         "@safe-global/safe-gateway-typescript-sdk",
-        "viem@2.52.2_typescript@6.0.3_zod@3.22.4"
+        "viem@2.52.2_typescript@6.0.3_zod@3.25.76"
       ]
     },
     "@safe-global/safe-gateway-typescript-sdk@3.23.1": {
@@ -3733,7 +3733,7 @@
         "@noble/hashes@1.8.0",
         "@scure/bip32",
         "@scure/bip39",
-        "abitype@1.2.3_typescript@6.0.3_zod@3.22.4",
+        "abitype@1.2.3_typescript@6.0.3_zod@3.25.76",
         "eventemitter3",
         "typescript"
       ],
@@ -3750,7 +3750,7 @@
         "@noble/hashes@1.8.0",
         "@scure/bip32",
         "@scure/bip39",
-        "abitype@1.2.3_typescript@6.0.3_zod@3.22.4",
+        "abitype@1.2.3_typescript@6.0.3_zod@3.25.76",
         "eventemitter3",
         "typescript"
       ],
@@ -4480,7 +4480,7 @@
       "jsr:@std/assert@~0.213.1",
       "jsr:@std/path@1",
       "npm:@creit.tech/stellar-wallets-kit@^2.1.0",
-      "npm:@stellar/stellar-sdk@^15.0.1",
+      "npm:@stellar/stellar-sdk@^15.1.0",
       "npm:buffer@^6.0.3",
       "npm:esbuild@0.25.12"
     ]
