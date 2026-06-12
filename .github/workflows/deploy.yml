@@ -116,6 +116,14 @@ jobs:
             --delete \
             --exclude "*.map" \
             --no-progress
+          # config.js must NOT be edge-cached — it carries the payPlatformUrl and
+          # other deploy-time substitutions. Other assets keep the bucket default.
+          aws s3 cp public/config.js s3://moonlight-pay-app/config.js \
+            --endpoint-url https://fly.storage.tigris.dev \
+            --acl public-read \
+            --cache-control "no-cache, max-age=0" \
+            --content-type text/javascript \
+            --no-progress
 
   deploy-mainnet:
     needs: verify
@@ -209,4 +217,12 @@ jobs:
             --acl public-read \
             --delete \
             --exclude "*.map" \
+            --no-progress
+          # config.js must NOT be edge-cached — it carries the payPlatformUrl and
+          # other deploy-time substitutions. Other assets keep the bucket default.
+          aws s3 cp public/config.js s3://mainnet-moonlight-pay/config.js \
+            --endpoint-url https://fly.storage.tigris.dev \
+            --acl public-read \
+            --cache-control "no-cache, max-age=0" \
+            --content-type text/javascript \
             --no-progress
