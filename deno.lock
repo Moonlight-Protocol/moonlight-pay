@@ -4,7 +4,7 @@
     "jsr:@colibri/core@0.22": "0.22.0",
     "jsr:@fifo/convee@1.0.0": "1.0.0",
     "jsr:@luca/esbuild-deno-loader@0.11": "0.11.1",
-    "jsr:@moonlight/moonlight-sdk@~0.9.1": "0.9.1",
+    "jsr:@moonlight/moonlight-sdk@0.10": "0.10.0",
     "jsr:@noble/curves@^1.8.0": "1.9.0",
     "jsr:@noble/hashes@1.8.0": "1.8.0",
     "jsr:@noble/hashes@^1.6.1": "1.8.0",
@@ -46,8 +46,8 @@
         "jsr:@std/path@^1.0.6"
       ]
     },
-    "@moonlight/moonlight-sdk@0.9.1": {
-      "integrity": "fc2b58567117030be971bb66a7154c8a1d6e077af5ef7015ae2b24331352aca1",
+    "@moonlight/moonlight-sdk@0.10.0": {
+      "integrity": "2e53005b3c38085fb4d508fc18c6ffdc1f3e7eb44ca2c941b520236594034f69",
       "dependencies": [
         "jsr:@colibri/core",
         "jsr:@noble/curves",
@@ -4475,7 +4475,7 @@
   "workspace": {
     "dependencies": [
       "jsr:@luca/esbuild-deno-loader@0.11",
-      "jsr:@moonlight/moonlight-sdk@~0.9.1",
+      "jsr:@moonlight/moonlight-sdk@0.10",
       "jsr:@noble/curves@^1.8.0",
       "jsr:@std/assert@~0.213.1",
       "jsr:@std/path@1",
