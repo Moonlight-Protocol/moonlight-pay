@@ -12,7 +12,7 @@ import {
   getRpcUrl,
   getStellarNetwork,
 } from "./config.ts";
-import { getToken } from "./api.ts";
+import { getToken, StructuredError } from "./api.ts";
 
 // ─── Lazy-loaded SDK types ─────────────────────────────────────
 // Keep everything behind dynamic import so the module can be imported
@@ -62,9 +62,45 @@ interface RpcServer {
 }
 interface SimulationResult {
   error?: string;
+  // Structured simulation-error identity when the SDK provides one. Kept loose
+  // because we don't pull in the full SDK types here.
+  errorResult?: unknown;
 }
 interface TxResult {
   status: string;
+  // On a non-SUCCESS getTransaction the Soroban RPC surfaces the failed
+  // transaction result and diagnostic events (as XDR / decoded objects). We
+  // read them best-effort so a failure carries its real on-chain identity
+  // instead of being flattened to the bare status string.
+  errorResult?: unknown;
+  resultXdr?: unknown;
+  diagnosticEventsXdr?: unknown;
+}
+
+/**
+ * Best-effort readable detail from an unknown SDK error field. Returns a string
+ * only when one is actually recoverable; never fabricates a code. Callers pair
+ * this with a regex to lift a machine code (e.g. "SOROBAN_1010") when present.
+ */
+function readErrorDetail(value: unknown): string | undefined {
+  if (typeof value === "string") return value || undefined;
+  if (typeof value === "number") return String(value);
+  if (Array.isArray(value)) {
+    const parts = value.map(readErrorDetail).filter((p): p is string => !!p);
+    return parts.length ? parts.join("; ") : undefined;
+  }
+  if (value && typeof value === "object") {
+    const o = value as Record<string, unknown>;
+    if (typeof o.message === "string" && o.message) return o.message;
+    if (typeof o.code === "string" && o.code) return o.code;
+    if (typeof o.code === "number") return String(o.code);
+  }
+  return undefined;
+}
+
+/** Lift a machine code token (e.g. SOROBAN_1010, BND_005) out of a detail string. */
+function codeFromDetail(detail: string | undefined): string | undefined {
+  return detail?.match(/[A-Z][A-Z0-9]+_\d+/)?.[0];
 }
 
 let StellarSdk: StellarSdkSubset | null = null;
@@ -132,7 +168,11 @@ export async function buildDepositTx(opts: {
 
   const sim = await server.simulateTransaction(tx);
   if ("error" in sim && sim.error) {
-    throw new Error(`Deposit simulation failed: ${sim.error}`);
+    const detail = sim.error ?? readErrorDetail(sim.errorResult);
+    throw new StructuredError(
+      `Deposit simulation failed: ${sim.error}`,
+      codeFromDetail(detail),
+    );
   }
   const { assembleTransaction } = stellar.rpc;
   const prepared = assembleTransaction(tx, sim).build();
@@ -158,7 +198,17 @@ export async function submitTx(
   const status = await waitForTx(server, result.hash);
 
   if (status.status !== "SUCCESS") {
-    throw new Error(`Deposit transaction failed: ${status.status}`);
+    // Don't flatten to the bare status — preserve whatever on-chain identity
+    // the RPC gave us (a machine code if we can lift one, else the real detail).
+    const detail = readErrorDetail(status.errorResult) ??
+      readErrorDetail(status.resultXdr) ??
+      readErrorDetail(status.diagnosticEventsXdr);
+    throw new StructuredError(
+      detail
+        ? `Deposit transaction failed on-chain: ${detail}`
+        : `Deposit transaction failed: ${status.status}`,
+      codeFromDetail(detail),
+    );
   }
   return { status: status.status };
 }

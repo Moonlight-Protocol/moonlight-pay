@@ -45,6 +45,22 @@ export class InvalidResponseError extends Error {
   }
 }
 
+/**
+ * Error carrying the platform's machine-readable failure `code` alongside the
+ * human `message`. The pay-platform error envelope is `{ code, status, message,
+ * details }`; the UI keys friendly copy on `code` (see friendlyError in dom.ts)
+ * and falls back to `message`. Thrown by throwFromErrorResponse so the code
+ * survives all the way to the view layer instead of being flattened to text.
+ */
+export class StructuredError extends Error {
+  readonly code?: string;
+  constructor(message: string, code?: string) {
+    super(message);
+    this.name = "StructuredError";
+    this.code = code;
+  }
+}
+
 let cachedToken: string | null | undefined = undefined;
 // Hold a reference to the installed listener so __resetApiForTests can
 // removeEventListener it. Without this, repeated install/reset cycles
@@ -166,9 +182,10 @@ function unwrapData<T>(body: unknown, where: string): T {
 }
 
 /**
- * Throw an Error built from the failed response. Prefers `body.message`
- * (the platform's standard error envelope) over a bare HTTP status. Used
- * by every wrapper so non-401/404 errors don't leak to the user as
+ * Throw a StructuredError built from the failed response. Prefers `body.message`
+ * (the platform's standard error envelope) over a bare HTTP status, and also
+ * carries `body.code` so the UI can map a machine-readable identity to friendly
+ * copy. Used by every wrapper so non-401/404 errors don't leak to the user as
  * "Get account failed: 503" when the platform sent a real explanation.
  */
 async function throwFromErrorResponse(
@@ -179,7 +196,10 @@ async function throwFromErrorResponse(
   const message = isObject(body) && typeof body.message === "string"
     ? body.message
     : `${fallbackPrefix}: ${res.status}`;
-  throw new Error(message);
+  const code = isObject(body) && typeof body.code === "string"
+    ? body.code
+    : undefined;
+  throw new StructuredError(message, code);
 }
 
 /**
