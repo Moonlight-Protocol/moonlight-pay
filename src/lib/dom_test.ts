@@ -82,6 +82,42 @@ Deno.test("friendlyError passes through readable API messages", () => {
   );
 });
 
+Deno.test("friendlyError maps a StructuredError code to friendly copy", () => {
+  // The primary path: a machine-readable code beats any free-text message.
+  assertEquals(
+    friendlyError({ code: "SOROBAN_1010", message: "auth entry expired" }),
+    "Your authorization expired — please try again.",
+  );
+  assertEquals(
+    friendlyError({ code: "BND_015", message: "channel withdraw-only" }),
+    "This channel is temporarily withdraw-only — you can still withdraw.",
+  );
+  assertEquals(
+    friendlyError({ code: "PROVIDER_EXECUTION_FAILED", message: "boom" }),
+    "The payment couldn't be completed. Please try again.",
+  );
+});
+
+Deno.test("friendlyError falls back to server message for an unknown code", () => {
+  // Unknown code, but the message is a safe human sentence → show it.
+  assertEquals(
+    friendlyError({
+      code: "SOROBAN_9999",
+      message: "The merchant is not accepting payments right now",
+    }),
+    "The merchant is not accepting payments right now",
+  );
+});
+
+Deno.test("friendlyError hides raw status strings instead of leaking them", () => {
+  // Regression for hole #7: the old pass-through heuristic showed this raw.
+  const generic = "Something went wrong. Please try again.";
+  assertEquals(
+    friendlyError(new Error("Deposit transaction failed: FAILED")),
+    generic,
+  );
+});
+
 Deno.test("friendlyError falls back to a generic message for unknown errors", () => {
   // We never want to leak raw stack traces or backend error fields to the UI.
   const generic = "Something went wrong. Please try again.";

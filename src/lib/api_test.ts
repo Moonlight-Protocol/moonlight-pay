@@ -65,6 +65,7 @@ import {
   isPlatformAuthed,
   type PayAccount,
   SessionExpiredError,
+  StructuredError,
   updateMe,
 } from "./api.ts";
 
@@ -195,6 +196,28 @@ Deno.test("createAccount surfaces backend validation messages", async () => {
       }),
     Error,
     "email is not a valid format",
+  );
+});
+
+Deno.test("throwFromErrorResponse captures body.code as StructuredError.code", async () => {
+  resetState();
+  fakeLocalStorage.setItem("moonlight_pay_jwt", "test-token");
+  nextResponse = jsonResponse(422, {
+    code: "BND_011",
+    status: 422,
+    message: "Account is not approved for payments",
+  });
+
+  const err = await createAccount({
+    email: "alice@example.com",
+    jurisdictionCountryCode: "US",
+  }).then(() => null, (e) => e);
+
+  assertEquals(err instanceof StructuredError, true);
+  assertEquals((err as StructuredError).code, "BND_011");
+  assertEquals(
+    (err as StructuredError).message,
+    "Account is not approved for payments",
   );
 });
 
