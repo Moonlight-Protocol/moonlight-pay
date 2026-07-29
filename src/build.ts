@@ -103,6 +103,25 @@ await esbuild.build({
   inject: [BUFFER_SHIM],
   treeShaking: false,
   plugins: [
+    // Resolve every bare/node: buffer import to the bundled npm buffer
+    // package so nothing stays external. Without this, esbuild leaves
+    // `import ... from "buffer"` statements in the output (unresolvable in
+    // browsers), which the old post-build regex patches tried to repair —
+    // fragile against minification and hoisting order.
+    {
+      name: "buffer-resolve",
+      setup(build: esbuild.PluginBuild) {
+        // realPath through the node_modules symlink into the .deno store so
+        // the package's own deps (base64-js, ieee754) resolve as siblings.
+        const bufferEntry = Deno.realPathSync(resolve(
+          PROJECT_ROOT,
+          "node_modules/buffer/index.js",
+        ));
+        build.onResolve({ filter: /^(node:)?buffer$/ }, () => ({
+          path: bufferEntry,
+        }));
+      },
+    },
     // Deduplicate @stellar/stellar-base — JSR and npm deps resolve separate
     // copies, each creating their own XDR type registry. XDR union identity
     // checks fail across copies ("Bad union switch: [object Object]").
@@ -153,46 +172,7 @@ appJs = appJs.replace(
     `if(${varName}==="buffer")return globalThis.__buffer_polyfill;throw ${errExpr}`,
 );
 
-// 2. Remove side-effect buffer imports. stellar-sdk >= 16 ESM emits
-// `import "buffer";` (base/generated, base/numbers); browsers cannot
-// resolve the bare specifier and the whole bundle fails to evaluate.
-// Buffer is already provided globally by the injected shim.
-appJs = appJs.replace(
-  /import\s*"(?:node:)?buffer"\s*;?/g,
-  "",
-);
-
-// 3. Replace named buffer / node:buffer imports with bindings to the
-// bundled npm `buffer` package. Must rewrite (not remove): esbuild renames
-// the local binding (e.g. `import { Buffer as Buffer12 }`), so dropping the
-// import leaves dangling identifiers behind. Must NOT bind via
-// globalThis.__buffer_polyfill: these hoisted import positions execute
-// before the injected shim's lazy init runs. The CJS factory of the bundled
-// buffer package is order-safe (defined near the top, idempotent) and its
-// name survives minification via its un-renamable path-string key.
-const bufferFactory = appJs.match(
-  /var (\w+) = \w+\(\{\s*"[^"]*\/buffer\/index\.js"/,
-)?.[1];
-appJs = appJs.replace(
-  /import\s*\{([^}]*)\}\s*from\s*"(?:node:)?buffer"\s*;?/g,
-  (_match, names) => {
-    const exports = names.split(",").map((n: string) => n.trim()).filter(
-      Boolean,
-    );
-    return exports.map((n: string) => {
-      const [original, alias] = n.split(/\s+as\s+/).map((s: string) =>
-        s.trim()
-      );
-      const localName = alias || original;
-      const source = bufferFactory
-        ? `${bufferFactory}()`
-        : "globalThis.__buffer_polyfill";
-      return `var ${localName} = ${source}.${original};`;
-    }).join("\n");
-  },
-);
-
-// 4. Replace node:crypto import with Web Crypto shim
+// 2. Replace node:crypto import with Web Crypto shim
 appJs = appJs.replace(
   /import\s*\{([^}]*)\}\s*from\s*"node:crypto"\s*;?/g,
   (_match, names) => {
