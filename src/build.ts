@@ -153,15 +153,28 @@ appJs = appJs.replace(
     `if(${varName}==="buffer")return globalThis.__buffer_polyfill;throw ${errExpr}`,
 );
 
-// 2. Remove bare ESM buffer imports
+// 2. Remove side-effect buffer imports. stellar-sdk >= 16 ESM emits
+// `import "buffer";` (base/generated, base/numbers); browsers cannot
+// resolve the bare specifier and the whole bundle fails to evaluate.
+// Buffer is already provided globally by the injected shim.
 appJs = appJs.replace(
-  /import\s*\{[^}]*\}\s*from\s*"buffer"\s*;?/g,
+  /import\s*"(?:node:)?buffer"\s*;?/g,
   "",
 );
 
-// 3. Replace node:buffer imports with polyfill reference
+// 3. Replace named buffer / node:buffer imports with bindings to the
+// bundled npm `buffer` package. Must rewrite (not remove): esbuild renames
+// the local binding (e.g. `import { Buffer as Buffer12 }`), so dropping the
+// import leaves dangling identifiers behind. Must NOT bind via
+// globalThis.__buffer_polyfill: these hoisted import positions execute
+// before the injected shim's lazy init runs. The CJS factory of the bundled
+// buffer package is order-safe (defined near the top, idempotent) and its
+// name survives minification via its un-renamable path-string key.
+const bufferFactory = appJs.match(
+  /var (\w+) = \w+\(\{\s*"[^"]*\/buffer\/index\.js"/,
+)?.[1];
 appJs = appJs.replace(
-  /import\s*\{([^}]*)\}\s*from\s*"node:buffer"\s*;?/g,
+  /import\s*\{([^}]*)\}\s*from\s*"(?:node:)?buffer"\s*;?/g,
   (_match, names) => {
     const exports = names.split(",").map((n: string) => n.trim()).filter(
       Boolean,
@@ -171,10 +184,10 @@ appJs = appJs.replace(
         s.trim()
       );
       const localName = alias || original;
-      if (original === "Buffer") {
-        return `var ${localName} = globalThis.__buffer_polyfill.Buffer;`;
-      }
-      return `var ${localName} = globalThis.__buffer_polyfill.${original};`;
+      const source = bufferFactory
+        ? `${bufferFactory}()`
+        : "globalThis.__buffer_polyfill";
+      return `var ${localName} = ${source}.${original};`;
     }).join("\n");
   },
 );
